@@ -64,9 +64,15 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
     .catch((err) => console.error("error connecting -", err));
 
 cron.schedule(`0 ${targetTime} * * *`, async () => {
+    deleteMsgs(); //go here if edit msg
+    }, {
+        timezone: "America/Chicago"
+});
+
+async function deleteMsgs() {
     const messages = await Chat.find();
 
-    messages.forEach(async (msg) => { //edit this too if edit chat
+    for (const msg of messages) { //edit this too if edit chat
         msg.username = "";
         msg.message = "";
         msg.reactions = [];
@@ -76,13 +82,9 @@ cron.schedule(`0 ${targetTime} * * *`, async () => {
         msg.timestamp = null;
         msg.replies = [];
         await msg.save();
-    });
+    }
     console.log("message is kil");
     io.emit("reloadMessages", messages);
-    // Chat.deleteMany({}, function(err) {
-    //     if (err) console.log(err);
-    //     console.log("message is kil");
-    // });
 
     try {
         const dir = "./uploads";
@@ -93,9 +95,16 @@ cron.schedule(`0 ${targetTime} * * *`, async () => {
     } catch (error) {
         console.log("oops", error);
     }
-    }, {
-        timezone: "America/Chicago"
-});
+
+    //delete chatbaorsd (for testigm ONLY!)
+    // Chatboard.deleteMany({}, function(err) { 
+    //     if (err) console.log(err);
+    //     console.log("cahtboard is kil");
+    // });
+}
+
+//run for testing only
+// deleteMsgs();
 
 setInterval(() => {
     const now = new Date();
@@ -207,7 +216,6 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
         chatboard.messages.push(chatMessage);
         await chatboard.save();
 
-        console.log(file.mimetype, chatMessage.imageMime);
         io.emit("newMessage", { chatMessage, chatboardName });
         res.status(201).send(chatMessage);
     } else {

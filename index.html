@@ -9,49 +9,60 @@
     <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
 <body>
-    <h1 id="timer">time until delete: </h1>
-    <p>all messages delete at 12am cdt (chatboards stay though)</p>
+    <button id="sidebar-toggle">☰</button>
+    <div class="sidebar">
+        <h2>chatboards</h2>
+        <label for="sort-chatboards">sort</label>
+        <select id="sort-chatboards">
+            <option value="popularity">popularity (default)</option>
+            <option value="latest">latest</option>
+        </select>
+        <ul id="chatboards"></ul>
+    </div>
 
-    <h2>create chatboard</h2>
-    <input type="text" id="chatboard-name" placeholder="chatboard name">
-    <input type="text" id="chatboard-descript" placeholder="chatboard description">
-    <input type="checkbox" id="chatboard-username" name="chatboard-username">
-    <label for="chatboard-username">anonymous</label>
-    <input type="checkbox" id="chatboard-private" name="chatboard-private">
-    <label for="chatboard-private">private</label>
-    <input type="text" id="chatboard-pass" placeholder="chatboard password">
+    <div class="chatboard-content">
+        <div class="my-timer">
+            <h1 id="timer">time until delete: </h1>
+            <p>all messages delete at 12am cdt (chatboards stay though)</p>
+        </div>
 
-    <button id="create-chatboard">create</button>
-
-    <h2>search chatboard</h2>
-    <input type="text" id="chatboard-search" placeholder="chatboard name search">
-    <input type="text" id="chatboard-password" placeholder="chatboard password">
-    <button id="search-chatboard">search</button>
-
-    <h1 id="chatboard-title">title</h1>
-    <p id="chatboard-description">description</p>
-
-    <h2>send mesasge</h2>
-    <input type="text" id="text-input" placeholder="message">
-    <input id="username" placeholder="name">
-    <input type="file" id="file-upload" title=" ">
-    <button id="send-button">send</button>
+        <div class="my-chatboard-container">
+            <h2>create chatboard</h2>
+            <input type="text" id="chatboard-name" placeholder="chatboard name">
+            <input type="text" id="chatboard-descript" placeholder="chatboard description">
+            <input type="checkbox" id="chatboard-username" name="chatboard-username">
+            <label for="chatboard-username">anonymous</label>
+            <input type="checkbox" id="chatboard-private" name="chatboard-private">
+            <label for="chatboard-private">private</label>
+            <input type="text" id="chatboard-pass" placeholder="chatboard password">
+            <button id="create-chatboard">create</button>
+        
+            <h2>search chatboard</h2>
+            <input type="text" id="chatboard-search" placeholder="chatboard name search">
+            <input type="text" id="chatboard-password" placeholder="chatboard password">
+            <button id="search-chatboard">search</button>
+        </div>
     
-    <h1>messages</h1>
-    <label for="sort-messages">sort</label>
-    <select id="sort-messages">
-        <option value="popularity">popularity (default)</option>
-        <option value="latest">latest</option>
-    </select>
-    <ul id="messages"></ul>
-
-    <h2>chatboards</h2>
-    <label for="sort-chatboards">sort</label>
-    <select id="sort-chatboards">
-        <option value="popularity">popularity (default)</option>
-        <option value="latest">latest</option>
-    </select>
-    <ul id="chatboards"></ul>
+        <div class="my-send">
+            <h1 id="chatboard-title">title</h1>
+            <p id="chatboard-description">description</p>
+            <h2>send mesasge</h2>
+            <input type="text" id="text-input" placeholder="message">
+            <input id="username" placeholder="name">
+            <input type="file" id="file-upload" title=" ">
+            <button id="send-button">send</button>
+        </div>
+        
+        <div class="my-message-container">
+            <h1>messages</h1>
+            <label for="sort-messages">sort</label>
+            <select id="sort-messages">
+                <option value="popularity">popularity (default)</option>
+                <option value="latest">latest</option>
+            </select>
+            <ul id="messages"></ul>
+        </div>
+    </div>
     <script>
         const socket = io();
 
@@ -115,8 +126,6 @@
         search.addEventListener("click", () => {
             if (chatboardSearch.value.trim()) {
                 searchChatboards(chatboardSearch.value);
-                chatboardSearch.value = "";
-                chatboardPassword.value = "";
             }
         });
 
@@ -228,6 +237,8 @@
                             return;
                         }
                     });
+                    chatboardSearch.value = "";
+                    chatboardPassword.value = "";
                 } else {
                     loadChatboards(data);
                 }
@@ -363,28 +374,30 @@
                     event.preventDefault();
                     const newMsg  = replyForm.querySelector("input[name='message']").value;
                     const user = replyForm.querySelector("input[name='username']").value || username.value || "Anonymous";
-                    fetch(`/addReply/${msg._id}`, {
+                    if (newMsg.trim()) {
+                        fetch(`/addReply/${msg._id}`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({ user, newMsg })
-                    })
-                    .then(response => response.json())
-                    .then(update => {
-                        console.log("new reply :thumbup:");
+                        })
+                        .then(response => response.json())
+                        .then(update => {
+                            console.log("new reply :thumbup:");
 
-                        repliesList.innerHTML = "";
-                        update.replies.forEach(reply => {
-                            let replyItem = document.createElement("li");
-                            replyItem.innerHTML = `<div class="my-reply"><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
-                                                    <p style="font-weight: bold">${reply.message}</p> - 
-                                                    <span>${reply.username} | ${reply.timestamp}</span></div>`;
-                            repliesList.appendChild(replyItem);
+                            repliesList.innerHTML = "";
+                            update.replies.forEach(reply => {
+                                let replyItem = document.createElement("li");
+                                replyItem.innerHTML = `<div class="my-reply"><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
+                                                        <p style="font-weight: bold">${reply.message}</p> - 
+                                                        <span>${reply.username} | ${reply.timestamp}</span></div>`;
+                                repliesList.appendChild(replyItem);
+                            });
                         });
-                    });
-                    newMsg.value = "";
-                    replyForm.querySelector("input[name='username']").value = user;
+                        newMsg.value = "";
+                        replyForm.querySelector("input[name='username']").value = user;
+                    }
                 });
                 const cube = item.querySelector(".cube");
                 const colorDisplay = item.querySelector(".color");
@@ -429,6 +442,22 @@
             });
             chatboards.appendChild(item);
         }
+
+        const sidebar = document.querySelector(".sidebar");
+        const main = document.querySelector(".chatboard-content");
+        sidebar.style.width = '250px';
+            main.style.marginLeft = '250px';
+
+        document.getElementById('sidebar-toggle').addEventListener('click', function () {
+
+        if (sidebar.style.width === '0px') {
+            sidebar.style.width = '250px';
+            main.style.marginLeft = '250px';
+        } else {
+            sidebar.style.width = '0px';
+            main.style.marginLeft = '0px';
+        }
+        });
     </script>
 </body>
 </html>
