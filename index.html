@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <h1 id="timer">time until delete: </h1>
+    <p>all messages delete at 12am cdt (chatboards stay though)</p>
+
+    <h2>create chatboard</h2>
+    <input type="text" id="chatboard-name" placeholder="chatboard name">
+    <input type="text" id="chatboard-descript" placeholder="chatboard description">
+    <input type="checkbox" id="chatboard-username" name="chatboard-username">
+    <label for="chatboard-username">anonymous</label>
+    <input type="checkbox" id="chatboard-private" name="chatboard-private">
+    <label for="chatboard-private">private</label>
+    <input type="text" id="chatboard-pass" placeholder="chatboard password">
+
+    <button id="create-chatboard">create</button>
+
+    <h2>search chatboard</h2>
+    <input type="text" id="chatboard-search" placeholder="chatboard name search">
+    <input type="text" id="chatboard-password" placeholder="chatboard password">
+    <button id="search-chatboard">search</button>
+
+    <h1 id="chatboard-title">title</h1>
+    <p id="chatboard-description">description</p>
+
+    <h2>send mesasge</h2>
+    <input type="text" id="text-input" placeholder="message">
+    <input id="username" placeholder="name">
+    <input type="file" id="file-upload" title=" ">
+    <button id="send-button">send</button>
+    
+    <h1>messages</h1>
+    <label for="sort-messages">sort</label>
+    <select id="sort-messages">
+        <option value="popularity">popularity (default)</option>
+        <option value="latest">latest</option>
+    </select>
+    <ul id="messages"></ul>
+
+    <h2>chatboards</h2>
+    <label for="sort-chatboards">sort</label>
+    <select id="sort-chatboards">
+        <option value="popularity">popularity (default)</option>
+        <option value="latest">latest</option>
+    </select>
+    <ul id="chatboards"></ul>
+    <script>
+        const socket = io();
+
+        const timer = document.getElementById("timer");
+        const title = document.getElementById("chatboard-title");
+        const description = document.getElementById("chatboard-description"); 
+
+        const chatboardName = document.getElementById("chatboard-name");
+        const chatboardDescript = document.getElementById("chatboard-descript");
+        const chatboardUser = document.getElementById("chatboard-username");
+        const chatboardPriv = document.getElementById("chatboard-private");
+        const chatboardPass = document.getElementById("chatboard-pass");
+        const create = document.getElementById("create-chatboard");
+        const chatboardSearch = document.getElementById("chatboard-search");
+        const chatboardPassword = document.getElementById("chatboard-password");
+        const search = document.getElementById("search-chatboard");
+
+        const input = document.getElementById("text-input");
+        const username = document.getElementById("username");
+        const send = document.getElementById("send-button");
+
+        const messages = document.getElementById("messages");
+        const sortMessages = document.getElementById("sort-messages");
+        const chatboards = document.getElementById("chatboards");
+        const sortChatboards = document.getElementById("sort-chatboards");
+
+        let fileUpload = document.getElementById("file-upload");
+        let currentListener = null;
+        let boardName = "";
+
+        window.onload = (event) => {
+            getChatboards(sortChatboards.value);
+        };
+
+        sortChatboards.addEventListener("change", () => {
+            getChatboards(sortChatboards.value);
+        });
+
+        create.addEventListener("click", () => {
+            if (chatboardName.value.trim() && chatboardDescript.value.trim()) {
+                console.log("create");
+                fetch("/createChatboard", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ name: chatboardName.value, description: chatboardDescript.value, username: chatboardUser.checked, private: chatboardPriv.checked, pass: chatboardPass.value })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    searchChatboards(data.name);
+                })
+                chatboardName.value = "";
+                chatboardDescript.value = "";
+                chatboardUser.checked = false;
+                chatboardPriv.checked = false;
+                chatboardPass.value = "";
+            }
+        });
+
+        search.addEventListener("click", () => {
+            if (chatboardSearch.value.trim()) {
+                searchChatboards(chatboardSearch.value);
+                chatboardSearch.value = "";
+                chatboardPassword.value = "";
+            }
+        });
+
+        send.addEventListener("click", () => {
+            if (boardName && input.value.trim()) {
+                console.log("send");
+                let name = username.value != "" ? username.value : "Anonymous";
+
+                let formData = new FormData();
+                formData.append("message", input.value);
+                formData.append("username", name);
+                formData.append("image", fileUpload.files[0]);
+
+                fetch(`/postMessage/${boardName}`, {
+                    method: "POST",
+                    body: formData
+                    // headers: {
+                    //     "Content-Type": "application/json"
+                    // },
+                    // body: JSON.stringify({ message: input.value, image: fileUpload.files[0], username: name })
+                })
+                .then(response => response.json())
+                .then(msg => {
+                    // addMessageToList(msg);
+                    // fetch(`/messages.${boardName}`)
+                    // .then(response => response.json())
+                    // .then(messagesData => {
+                    //     messages.innerHTML = "";
+                    //     for (let msg of messagesData) {
+                    //         addMessageToList(msg);
+                    //     }
+                    // });
+                    // loadChatboards(msg, sortMessages.value);
+                });
+                input.value = "";
+            }
+        });
+
+        socket.on("reloadMessages", (data) => {
+            let messageList = document.getElementById("messages");
+            while (messageList.firstChild) {
+                messageList.firstChild.remove();
+            }
+            messages.forEach(msg => {
+                addMessageToList(msg);
+            });
+        });
+
+        socket.on("updateTimer", (data) => {
+            timer.textContent = `time until delete: ${data.hours}:${data.mins}:${data.secs}`;
+        });
+
+        socket.on("reloadMessages", (newMsgs) => {
+            messages.innerHTML = "";
+            newMsgs.forEach(addMessageToList);
+        });
+
+        socket.on("newMessage", (data) => {
+            console.log(data.chatboardName, boardName);
+            if (data.chatboardName === boardName) {
+                console.log("possibly");
+                loadChatboards({ name: boardName }, sortMessages.value); //most desginfitely not security risk in any way :thumbsup:
+            }
+        });
+
+        socket.on("newReply", (data) => {
+            let chatItem = document.querySelector(`li[data-id="${data._id}"]`);
+            if (chatItem) {
+                chatItem.remove();
+            }
+            loadChatboards({ name: boardName }, sortMessages.value);
+        });
+
+        socket.on("newReaction", (data) => {
+            const msg = document.querySelector(`[data-id="${data.chatId}"]`);
+            if (msg) {
+                const reaction = msg.querySelector(".reactions");
+                const reactionCounts = data.newMessage.reactions.reduce((counts, reaction) => {
+                    counts[reaction.emoji] = (counts[reaction.emoji] || 0) + 1;
+                    return counts;
+                }, {});
+                reaction.innerHTML = `Reactions: ${Object.entries(reactionCounts).map(([emoji, count]) => `${emoji} ${count}x`).join(" ")}`;
+                // loadChatboards({ name: boardName }, sortMessages.value);
+            }
+        });
+
+        function searchChatboards(chatboardSearch) {
+            console.log("searcj");
+            fetch(`/searchChatboard/${chatboardSearch}`)
+            .then(response => response.json())
+            .then(data => {
+                let newData = data;
+                if (data.private) {
+                    let password = chatboardPassword.value;
+                    fetch("verifyPassword", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ name: data.name, pass: password })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message === "good") {
+                            console.log("good");
+                            loadChatboards(newData);
+                        } else {
+                            console.log("wrong");
+                            return;
+                        }
+                    });
+                } else {
+                    loadChatboards(data);
+                }
+            });
+            // window.scrollTo(0, document.body.scrollTop);
+        }
+
+        function getChatboards(sort = "popularity") {
+            fetch(`/getChatboards/${sort}`)
+            .then(response => response.json())
+            .then(data => {
+                while(chatboards.firstChild) {
+                    chatboards.removeChild(chatboards.firstChild);
+                }
+
+                for(let chatboard of data){
+                    addChatboardToList(chatboard);
+                }
+            });
+        }
+
+        function loadChatboards(data, sort = "popularity") {
+            boardName = data.name;
+            title.textContent = boardName;
+            description.textContent = data.description;
+            messages.innerHTML = "";
+            // chatboards.innerHTML = "";
+            fetch(`/messages/${boardName}/${sort}`)
+            .then(response => response.json())
+            .then(messagesData => {
+                while (messages.firstChild) {
+                    messages.removeChild(messages.firstChild);
+                }
+
+                for (let msg of messagesData) {
+                    addMessageToList(msg);
+                }
+            });
+            if (currentListener) {
+                sortMessages.removeEventListener("change", currentListener);
+            }
+            currentListener = () => {
+                loadChatboards(data, sortMessages.value);
+            }
+            sortMessages.addEventListener("change", currentListener);
+        }
+
+        function addMessageToList(msg) {
+            console.log("add");
+            if (msg.message && msg.message.trim()) {
+                let isClicked = false; //now works !!
+                let newFile = "";
+                let emojiList;
+                let item = document.createElement("li");
+                item.setAttribute("data-id", msg._id);
+
+                if (msg.image && msg.imageMime) {
+                    const mimeType = msg.imageMime;
+                    if (mimeType && mimeType.startsWith("image/")) {
+                        newFile = `<img src="${msg.image}" alt="${msg.message}"/>`;
+                    } else if (mimeType && mimeType === "application/pdf") {
+                        // newFile = `<object data="${msg.image}" type="application/pdf"></object>
+                        //         <a href="${msg.image}">download</a>`;
+                    } else {
+                        newFile = `<p>bro thinks he can upload anything BUT an image or pdf 🤓🤓🤓🤓<p>`;
+                    }
+                }
+                
+                const reactionCounts = msg.reactions.reduce((counts, reaction) => {
+                    counts[reaction.emoji] = (counts[reaction.emoji] || 0) + 1;
+                    return counts;
+                }, {});
+                item.innerHTML = `<div class="my-message">
+                                <div class="cube-container">
+                                    <div class="cube" style="width: 20px; height: 20px; background-color: ${msg.color}"></div><p class="color"></p><h4>${msg.username} - <span style="font-weight: normal; font-style: italic;">${msg.timestamp}:</span></h4>
+                                </div>
+                                <h3><span style="font-weight: bold">${msg.message}</span> | ${msg.views} ${msg.views === 1 ? "view" : "views"}</h3>
+                                ${newFile}
+                                <p class="reactions">Reactions: ${Object.entries(reactionCounts).map(([emoji, count]) => `${emoji} ${count}x`).join(" ") || "none"}</p>
+                                <div class="reactions-container"></div>
+                                <form class="reply-form">
+                                    <input type="text" name="message" placeholder="reply">
+                                    <input type="text" name="username" placeholder="name" value=${username.value || ""}>
+                                    <button type="submit">send</button>
+                                </form>
+                                <button class="show-replies">show replies (${msg.replies ? msg.replies.length : 0})</button>
+                                <ul class="replies" style="display: none">
+                                    ${msg.replies ? msg.replies.map(reply => `<div class="my-reply"><li><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
+                                                                            <p style="font-weight: bold">${reply.message}</p> - 
+                                                                            <span>${reply.username} | ${reply.timestamp}</span></li></div>`).join("") : ""}
+                                </ul>
+                                </div>`;
+
+                item.addEventListener("dblclick", () => {
+                    if (!isClicked) {
+                        isClicked = true;
+                        let reactionsContainer = item.querySelector(".reactions-container");
+                        emojiList = document.createElement("ul");
+                        let emojis = ["😍", "😂", "🧐", "😐", "🥺", "😭", "🤮", "🤓"];
+                        for (let emoji of emojis) {
+                            let emojiItem = document.createElement("li");
+                            let button = document.createElement("button");
+                            button.textContent = emoji;
+                            button.addEventListener("click", (event) => {
+                                event.stopPropagation();
+                                fetch(`/addReaction/${msg._id}`, {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({ emoji: emoji })
+                                })
+                                .then(response => response.json())
+                                .then(update => {
+                                    console.log("updatetd");
+                                });
+                                isClicked = false;
+                                emojiList.remove();
+                            });
+                            emojiItem.appendChild(button);
+                            emojiList.appendChild(emojiItem);
+                        }
+                        reactionsContainer.appendChild(emojiList);
+                    } else {
+                        isClicked = false;
+                        emojiList.remove();
+                    }
+                });
+                const replyForm = item.querySelector(".reply-form");
+                const repliesList = item.querySelector(".replies");
+                const repliesButton = item.querySelector(".show-replies");
+                replyForm.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    const newMsg  = replyForm.querySelector("input[name='message']").value;
+                    const user = replyForm.querySelector("input[name='username']").value || username.value || "Anonymous";
+                    fetch(`/addReply/${msg._id}`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ user, newMsg })
+                    })
+                    .then(response => response.json())
+                    .then(update => {
+                        console.log("new reply :thumbup:");
+
+                        repliesList.innerHTML = "";
+                        update.replies.forEach(reply => {
+                            let replyItem = document.createElement("li");
+                            replyItem.innerHTML = `<div class="my-reply"><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
+                                                    <p style="font-weight: bold">${reply.message}</p> - 
+                                                    <span>${reply.username} | ${reply.timestamp}</span></div>`;
+                            repliesList.appendChild(replyItem);
+                        });
+                    });
+                    newMsg.value = "";
+                    replyForm.querySelector("input[name='username']").value = user;
+                });
+                const cube = item.querySelector(".cube");
+                const colorDisplay = item.querySelector(".color");
+
+                cube.addEventListener("mouseover", () => {
+                    colorDisplay.textContent = msg.color;
+                });
+                cube.addEventListener("mouseleave", () => {
+                    colorDisplay.textContent = "";
+                });
+
+                repliesButton.addEventListener("click", () => {
+                    event.stopPropagation();
+                    if (repliesList.style.display === "none") {
+                        repliesList.style.display = "block";
+                        repliesButton.textContent = `hide replies (${msg.replies ? msg.replies.length : 0})`;
+                    } else {
+                        repliesList.style.display = "none"
+                        repliesButton.textContent = `show replies (${msg.replies ? msg.replies.length : 0})`;
+                    }
+                });
+
+                messages.appendChild(item);
+            }
+            // window.scrollTo(0, document.body.scrollTop);
+        }
+
+        function addChatboardToList(chatboard) {
+            let item = document.createElement("li");
+            item.innerHTML = `<div class="my-chatboard">
+                            <div class="cube-container">
+                                <div class="cube" style="width: 20px; height: 20px; background-color: ${chatboard.creator || "black"}"></div>
+                                <h3>${chatboard.name} <span class="status"></span></h3>
+                            </div>
+                            <h4>${chatboard.description ? chatboard.description : ""}</h4>
+                            <p>Lifetime views: ${chatboard.totalViews} | Created: ${chatboard.timestamp ? chatboard.timestamp : "sometime ago"}</p></div>`;
+            if (chatboard.private) {
+                item.querySelector(".status").innerHTML = "| private";
+            }
+            item.addEventListener("click", () => {
+                searchChatboards(chatboard.name);
+            });
+            chatboards.appendChild(item);
+        }
+    </script>
+</body>
+</html>
