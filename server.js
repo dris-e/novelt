@@ -38,7 +38,7 @@ const upload = multer({
 });
 require("dotenv").config();
 
-let targetTime = 0;
+let targetTime = 5; //12 am cdt
 let nextReset;
 
 //add reactions x

@@ -313,7 +313,7 @@
                 }, {});
                 item.innerHTML = `<div class="my-message">
                                 <div class="cube-container">
-                                    <div class="cube" style="width: 20px; height: 20px; background-color: ${msg.color}"></div><p class="color"></p><h4>${msg.username} - <span style="font-weight: normal; font-style: italic;">${msg.timestamp}:</span></h4>
+                                    <div class="cube" style="width: 20px; height: 20px; background-color: ${msg.color}"></div><p class="color"></p><h4>${msg.username} - <span style="font-weight: normal; font-style: italic;">${new Date(msg.timestamp).toLocaleString()}:</span></h4>
                                 </div>
                                 <h3><span style="font-weight: bold">${msg.message}</span> | ${msg.views} ${msg.views === 1 ? "view" : "views"}</h3>
                                 ${newFile}
@@ -328,7 +328,7 @@
                                 <ul class="replies" style="display: none">
                                     ${msg.replies ? msg.replies.map(reply => `<div class="my-reply"><li><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
                                                                             <p style="font-weight: bold">${reply.message}</p> - 
-                                                                            <span>${reply.username} | ${reply.timestamp}</span></li></div>`).join("") : ""}
+                                                                            <span>${reply.username} | ${new Date(reply.timestamp).toLocaleString()}</span></li></div>`).join("") : ""}
                                 </ul>
                                 </div>`;
 
@@ -391,7 +391,7 @@
                                 let replyItem = document.createElement("li");
                                 replyItem.innerHTML = `<div class="my-reply"><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
                                                         <p style="font-weight: bold">${reply.message}</p> - 
-                                                        <span>${reply.username} | ${reply.timestamp}</span></div>`;
+                                                        <span>${reply.username} | ${new Date(reply.timestamp).toLocaleString}</span></div>`;
                                 repliesList.appendChild(replyItem);
                             });
                         });
@@ -433,7 +433,7 @@
                                 <h3>${chatboard.name} <span class="status"></span></h3>
                             </div>
                             <h4>${chatboard.description ? chatboard.description : ""}</h4>
-                            <p>Lifetime views: ${chatboard.totalViews} | Created: ${chatboard.timestamp ? chatboard.timestamp : "sometime ago"}</p></div>`;
+                            <p>Lifetime views: ${chatboard.totalViews} | Created: ${chatboard.timestamp ? new Date(chatboard.timestamp).toLocaleString() : "sometime ago"}</p></div>`;
             if (chatboard.private) {
                 item.querySelector(".status").innerHTML = "| private";
             }
