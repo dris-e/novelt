@@ -13,7 +13,7 @@ const Chat = require("./models/Chat");
 const Chatboard = require("./models/Chatboard");
 
 const storage = multer.diskStorage({
-    description: (req, file, cb) => {
+    destination: (req, file, cb) => {
         cb(null, "uploads/");
     },
     filename: (req, file, cb) => {
@@ -51,8 +51,15 @@ let nextReset;
 //add replies x
 //REPLIES VIEW COUNT DO NOT WORK!!! x (no longer here)
 //sort by latest/most popular x
-//image upload x
+//image upload x (DOES NOT WORK)
 //links/routes for every chatboard (if not cookies to last chatboard)
+//save last chatboard user was on in cookies
+
+//optimization
+//dont load and empty messages
+//store ip as first 10 digits of hash
+//show trending messages on homepage
+//load first 10 on scroll
 
 const app = express();
 const server = http.createServer(app);

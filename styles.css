@@ -71,6 +71,7 @@ img, object {
 }
 
 .my-chatboard, .my-message, .my-reply, .my-send, .my-message-container, .my-chatboard-container {
+    max-width: 800px;
     padding: 2rem 2rem;
     border-radius: 1rem;
     margin: 2rem auto;
