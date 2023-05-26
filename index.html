@@ -16,7 +16,7 @@
         </div>
         <h1 id="title-text">possibly tc fanclub</h1>
         <input type="text" id="chatboard-search" placeholder="chatboard name search">
-        <input type="password" id="chatboard-password" placeholder="chatboard password" style="display: none">
+        <input type="password" id="chatboard-password" placeholder="chatboard password (optional)" style="display: none">
         <button id="create-chatboard-toggle">create chatboard</button>
     </div>
     <div class="sidebar">
@@ -273,11 +273,11 @@
                     chatboardPassword.value = "";
                     chatboardSearchPassword.value = "";
                 } else {
-                    chatboardPassword.style.display = "none";
-                    chatboardSearchPassword.style.disply = "none";
                     boardInput.value = chatboardSearch;
                     loadChatboards(data);
                 }
+                chatboardPassword.style.display = "none";
+                chatboardSearchPassword.style.disply = "none";
                 // history.pushState(null, null, `/chatboard/${data.name}`); KEYWORD
                 // renderChatboard(data);
             });
