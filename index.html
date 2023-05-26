@@ -14,7 +14,7 @@
             <button id="sidebar-toggle">☰</button>
             <h1 id="timer" style="font-weight: 400"></h1>
         </div>
-        <h1 id="title-text">NOT TC FANCLUB!!!!!</h1>
+        <h1 id="title-text">possibly tc fanclub</h1>
         <input type="text" id="chatboard-search" placeholder="chatboard name search">
         <input type="password" id="chatboard-password" placeholder="chatboard password" style="display: none">
         <button id="create-chatboard-toggle">create chatboard</button>
@@ -51,10 +51,13 @@
 
         <div class="my-send">
             <h2>send mesasge</h2>
+            <input type="text" id="board-name" placeholder="chtaboard name">
+            <input type="password" id="chatboard-search-password" placeholder="chatboard paswrod" style="display: none">
             <textarea type="text" id="text-input" placeholder="message"></textarea>
             <input id="username" placeholder="name">
             <input type="file" id="file-upload">
             <button id="send-button">send</button>
+            <p>I DO NOT TAKE REPSOSNDIBILITY FO RHWAT OTHER PEOPLE TYPE ON HERE !!</p>
         </div>
         
         <div class="my-message-container" style="display: none;">
@@ -85,10 +88,12 @@
         const chatboardPass = document.getElementById("chatboard-pass");
         const create = document.getElementById("create-chatboard");
         const chatboardSearch = document.getElementById("chatboard-search");
+        const chatboardSearchPassword = document.getElementById("chatboard-search-password");
         const chatboardPassword = document.getElementById("chatboard-password");
         const chatboardToggle = document.getElementById("create-chatboard-toggle");
 
         const input = document.getElementById("text-input");
+        const boardInput = document.getElementById("board-name");
         const username = document.getElementById("username");
         const send = document.getElementById("send-button");
 
@@ -151,7 +156,8 @@
         });
 
         send.addEventListener("click", () => {
-            if (boardName && input.value.trim()) {
+            const newBoard = boardName || boardInput.value;
+            if (newBoard && input.value.trim()) {
                 console.log("send");
                 let name = username.value != "" ? username.value : "Anonymous";
 
@@ -160,7 +166,7 @@
                 formData.append("username", name);
                 formData.append("image", fileUpload.files[0]);
 
-                fetch(`/postMessage/${boardName}`, {
+                fetch(`/postMessage/${newBoard}`, {
                     method: "POST",
                     body: formData
                     // headers: {
@@ -182,6 +188,9 @@
                     // loadChatboards(msg, sortMessages.value);
                 });
                 input.value = "";
+                if (boardInput.value.trim()) {
+                    searchChatboards(newBoard);
+                }
             }
         });
 
@@ -241,7 +250,8 @@
                 let newData = data;
                 if (data.private) {
                     chatboardPassword.style.display = "block";
-                    let password = chatboardPassword.value;
+                    chatboardSearchPassword.style.display = "block";
+                    let password = chatboardPassword.value || chatboardSearchPassword.value;
                     fetch("verifyPassword", {
                         method: "POST",
                         headers: {
@@ -261,8 +271,11 @@
                     });
                     chatboardSearch.value = "";
                     chatboardPassword.value = "";
+                    chatboardSearchPassword.value = "";
                 } else {
                     chatboardPassword.style.display = "none";
+                    chatboardSearchPassword.style.disply = "none";
+                    boardInput.value = chatboardSearch;
                     loadChatboards(data);
                 }
                 // history.pushState(null, null, `/chatboard/${data.name}`); KEYWORD
@@ -299,6 +312,7 @@
             }
             messageContainer.style.display = "block";
             title.innerHTML = `<h1 style="color: ${data.creator ? data.creator : "fff"}">${boardName} <span style="color: #fff">${data.private ? "| Private" : ""}</span></h1>`;
+            chatboardTitle.innerHTML = boardName;
             description.innerHTML = data.description;
             details.innerHTML = `Creator: ${data.creator ? data.creator : "me"} | Lifetime messages: ${data.messages.length ? data.messages.length : "a lot probably"} | Created: ${new Date(data.timestamp).toLocaleString()}`;
             messages.innerHTML = "";
