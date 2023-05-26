@@ -307,7 +307,7 @@ app.post("/verifyPassword", async (req, res) => {
         return res.status(400).json({ message: "chatboard not found or not private "});
     }
 
-    const match = await bcrypt.compare(pass, chatboard.pass );
+    const match = await bcrypt.compare(pass, chatboard.pass);
     if (match) {
         res.status(200).send({ message: "good" });
     } else {
@@ -378,7 +378,7 @@ app.get("/messages/:chatboardName/:sort?", async (req, res) => {
         const messages = chatboard.messages;
 
         messages.forEach(async (message) => {
-            if (!message.viewed.includes(ip)) {
+            if (!message.viewed.includes(ip) && message.message !== "") {
                 message.viewed.push(ip);
                 message.views++;
                 message.color = `#${ip.substring(0, 6)}`;
