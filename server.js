@@ -38,7 +38,7 @@ const upload = multer({
 });
 require("dotenv").config();
 
-let targetTime = 5; //12 am cdt
+let targetTime = 0; //12 am cdt
 let nextReset;
 
 //add reactions x
@@ -51,15 +51,18 @@ let nextReset;
 //add replies x
 //REPLIES VIEW COUNT DO NOT WORK!!! x (no longer here)
 //sort by latest/most popular x
-//image upload x (DOES NOT WORK)
+//image upload x (DOES NOT WORK ON SERVER, USE AWS)
 //links/routes for every chatboard (if not cookies to last chatboard)
 //save last chatboard user was on in cookies
+//same timezone everywhere
+//allow all file types and sort content by filetype
 
 //optimization
-//dont load and empty messages
-//store ip as first 10 digits of hash
+//dont load and empty messages x
+//store ip as first 10 digits of hash x
 //show trending messages on homepage
 //load first 10 on scroll
+//show one at a time, similar to tiktok
 
 const app = express();
 const server = http.createServer(app);
@@ -148,9 +151,19 @@ app.use((err, req, res, next) => {
 });
 app.use(bodyParser.json());
 
+// app.get("/chatboard/:chatboardName", (req, res) => {
+//     const chatboardName = req.params.chatboardName;
+
+//     res.sendFile(path.join(__dirname, "index.html"));
+// });
+
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
+
+// app.get("/chatboard/styles.css", (req, res) => {
+//     res.sendFile(path.join(__dirname, "styles.css"), { headers: { "Content-Type": "text/css"} })
+// });
 
 app.get("/download/:file(*)", (req, res) => {
     const file = req.params.file;
@@ -162,7 +175,7 @@ app.get("/download/:file(*)", (req, res) => {
 app.post("/createChatboard", async (req, res) => {
     const { name, description, username, private, pass } = req.body;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-    const ip = hashKey(dehashIP);
+    const ip = hashKey(dehashIP).substring(0, 8);
 
     if (!name.trim()) {
         return res.status(400).json({ message: "chatboard name cant be empty" });
@@ -170,7 +183,7 @@ app.post("/createChatboard", async (req, res) => {
     
     const exists = await Chatboard.findOne({ name });
     if (exists) {
-        return res.status(400).json({ message: "chatboard already exists" });
+        return res.status(400).json({ message: "chatboard alr exists" });
     }
 
     let hashedPass = null;
@@ -201,7 +214,7 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
     const { message, username, reactions } = req.body;
     const { file } = req;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-    const ip = hashKey(dehashIP);
+    const ip = hashKey(dehashIP).substring(0, 8);
     const chatboard = await Chatboard.findOne({ name: chatboardName });
 
     if (chatboard) { //edit this if edit chat
@@ -223,18 +236,19 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
         chatboard.messages.push(chatMessage);
         await chatboard.save();
 
-        io.emit("newMessage", { chatMessage, chatboardName });
+        io.emit("newMessage", { chatboard, chatboardName });
         res.status(201).send(chatMessage);
     } else {
         res.status(404).send({ message: "chatboard not found" });
     }
 });
 
-app.post("/addReply/:chatId", async (req, res) => {
+app.post("/addReply/:chatId/:boardName?", async (req, res) => {
     const chatId = req.params.chatId;
+    const boardName = req.params.boardName;
     const { user, newMsg } = req.body;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-    const ip = hashKey(dehashIP);
+    const ip = hashKey(dehashIP).substring(0, 8);
 
     const reply = { 
         username: user, 
@@ -246,12 +260,13 @@ app.post("/addReply/:chatId", async (req, res) => {
         viewed: []
     }
     const chat = await Chat.findOne({ _id: chatId });
+    const board = await Chatboard.findOne({ name: boardName });
 
     if (chat) {
         chat.replies.push(reply);
         await chat.save();
 
-        io.emit("newReply", chat);
+        io.emit("newReply", { chat, board });
         res.status(200).send(chat);
     } else {
         res.status(404).send({ message: "message not found" });
@@ -262,7 +277,7 @@ app.post("/addReaction/:chatId", async (req, res) => {
     const chatId = req.params.chatId;
     const { emoji } = req.body;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-    const ip = hashKey(dehashIP);
+    const ip = hashKey(dehashIP).substring(0, 8);
     const message = await Chat.findOne({ _id: chatId });
 
     if (message) {
@@ -300,8 +315,9 @@ app.post("/verifyPassword", async (req, res) => {
     }
 });
 
-app.get("/getChatboards/:sort?", async (req, res) => {
+app.get("/getChatboards/:sort/:skip?", async (req, res) => {
     const sort = req.params.sort || "popularity";
+    const skip = req.params.skip ? parseInt(req.params.skip) : 0;
     let sortOption = {};
 
     if (sort === "latest") {
@@ -313,6 +329,8 @@ app.get("/getChatboards/:sort?", async (req, res) => {
         path: "messages",
         options: { sort: { views: -1 } }
     }).sort(sortOption);
+    // .skip(skip)
+    // .limit(10); //change if more
 
     const newChatboards = chatboards.map(chatboard => {
         let totalViews = 0;
@@ -356,7 +374,7 @@ app.get("/messages/:chatboardName/:sort?", async (req, res) => {
 
     if(chatboard) {
         const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-        const ip = hashKey(dehashIP);
+        const ip = hashKey(dehashIP).substring(0, 8);
         const messages = chatboard.messages;
 
         messages.forEach(async (message) => {
@@ -373,7 +391,7 @@ app.get("/messages/:chatboardName/:sort?", async (req, res) => {
                 // }
                 await message.save();
             }
-            message.popularityScore = (message.views || 1) * (message.reactions.length || 1) * (message.replies.length || 1) * (message.image ? 1.2 : 1);
+            message.popularityScore = (message.views || 1) * (message.reactions.length || 1) * (message.replies.length || 1) * (message.image ? 2 : 1);
         });
 
         if (sort === "popularity") {

@@ -9,9 +9,17 @@
     <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
 <body>
-    <button id="sidebar-toggle">☰</button>
+    <div class="navbar">
+        <div id="navbar-left">
+            <button id="sidebar-toggle">☰</button>
+            <h1 id="timer" style="font-weight: 400"></h1>
+        </div>
+        <h1 id="title-text">tyler claijr fanclub</h1>
+        <input type="text" id="chatboard-search" placeholder="chatboard name search">
+        <input type="password" id="chatboard-password" placeholder="chatboard password" style="display: none">
+        <button id="create-chatboard-toggle">create</button>
+    </div>
     <div class="sidebar">
-        <h2>chatboards</h2>
         <label for="sort-chatboards">sort</label>
         <select id="sort-chatboards">
             <option value="popularity">popularity (default)</option>
@@ -21,12 +29,7 @@
     </div>
 
     <div class="chatboard-content">
-        <div class="my-timer">
-            <h1 id="timer">time until delete: </h1>
-            <p>all messages delete at 12am cdt (chatboards stay though)</p>
-        </div>
-
-        <div class="my-chatboard-container">
+        <div class="my-chatboard-container" style="height: 0px; opacity: 0; margin: -2rem">
             <h2>create chatboard</h2>
             <input type="text" id="chatboard-name" placeholder="chatboard name">
             <input type="text" id="chatboard-descript" placeholder="chatboard description">
@@ -34,41 +37,46 @@
             <label for="chatboard-username">anonymous</label>
             <input type="checkbox" id="chatboard-private" name="chatboard-private">
             <label for="chatboard-private">private</label>
-            <input type="text" id="chatboard-pass" placeholder="chatboard password">
+            <input type="password" id="chatboard-pass" placeholder="chatboard password" style="display: none">
             <button id="create-chatboard">create</button>
-        
-            <h2>search chatboard</h2>
-            <input type="text" id="chatboard-search" placeholder="chatboard name search">
-            <input type="text" id="chatboard-password" placeholder="chatboard password">
-            <button id="search-chatboard">search</button>
         </div>
     
+        <div class="my-chatboard-details">
+            <div id="chatboard-content-details" style="display: none">
+                <h1 id="chatboard-title">title</h1>
+                <h3 id="chatboard-description">description</h3>
+                <p id="chatboard-details">details</p>
+            </div>
+        </div>
+
         <div class="my-send">
-            <h1 id="chatboard-title">title</h1>
-            <p id="chatboard-description">description</p>
             <h2>send mesasge</h2>
-            <input type="text" id="text-input" placeholder="message">
+            <textarea type="text" id="text-input" placeholder="message"></textarea>
             <input id="username" placeholder="name">
-            <input type="file" id="file-upload" title=" ">
+            <input type="file" id="file-upload">
             <button id="send-button">send</button>
         </div>
         
-        <div class="my-message-container">
-            <h1>messages</h1>
+        <div class="my-message-container" style="display: none;">
             <label for="sort-messages">sort</label>
             <select id="sort-messages">
                 <option value="popularity">popularity (default)</option>
                 <option value="latest">latest</option>
             </select>
-            <ul id="messages"></ul>
+            <div class="chatboard-container">
+                <ul id="messages"></ul>
+            </div>
         </div>
     </div>
     <script>
         const socket = io();
 
         const timer = document.getElementById("timer");
+        const chatboardTitle = document.getElementById("title-text");
+        const chatboardDetails = document.getElementById("chatboard-content-details");
         const title = document.getElementById("chatboard-title");
         const description = document.getElementById("chatboard-description"); 
+        const details = document.getElementById("chatboard-details");
 
         const chatboardName = document.getElementById("chatboard-name");
         const chatboardDescript = document.getElementById("chatboard-descript");
@@ -78,7 +86,7 @@
         const create = document.getElementById("create-chatboard");
         const chatboardSearch = document.getElementById("chatboard-search");
         const chatboardPassword = document.getElementById("chatboard-password");
-        const search = document.getElementById("search-chatboard");
+        const chatboardToggle = document.getElementById("create-chatboard-toggle");
 
         const input = document.getElementById("text-input");
         const username = document.getElementById("username");
@@ -88,10 +96,17 @@
         const sortMessages = document.getElementById("sort-messages");
         const chatboards = document.getElementById("chatboards");
         const sortChatboards = document.getElementById("sort-chatboards");
+        const messageContainer = document.querySelector(".my-message-container");
+
+        const chatboardContainer = document.querySelector(".my-chatboard-container");
 
         let fileUpload = document.getElementById("file-upload");
         let currentListener = null;
+        let currentIndex = 0;
         let boardName = "";
+        let loadingMore = false;
+        let chatboardCount = 0;
+        let skipChatboards = 0;
 
         window.onload = (event) => {
             getChatboards(sortChatboards.value);
@@ -123,7 +138,13 @@
             }
         });
 
-        search.addEventListener("click", () => {
+        chatboardSearch.addEventListener("change", () => {
+            if (chatboardSearch.value.trim()) {
+                searchChatboards(chatboardSearch.value);
+            }
+        });
+
+        chatboardPassword.addEventListener("change", () => {
             if (chatboardSearch.value.trim()) {
                 searchChatboards(chatboardSearch.value);
             }
@@ -175,7 +196,7 @@
         });
 
         socket.on("updateTimer", (data) => {
-            timer.textContent = `time until delete: ${data.hours}:${data.mins}:${data.secs}`;
+            timer.textContent = `${data.hours}:${data.mins}:${data.secs}`;
         });
 
         socket.on("reloadMessages", (newMsgs) => {
@@ -187,16 +208,16 @@
             console.log(data.chatboardName, boardName);
             if (data.chatboardName === boardName) {
                 console.log("possibly");
-                loadChatboards({ name: boardName }, sortMessages.value); //most desginfitely not security risk in any way :thumbsup:
+                loadChatboards(data.chatboard, sortMessages.value); //most desginfitely not security risk in any way :thumbsup:
             }
         });
 
         socket.on("newReply", (data) => {
-            let chatItem = document.querySelector(`li[data-id="${data._id}"]`);
+            let chatItem = document.querySelector(`li[data-id="${data.chat._id}"]`);
             if (chatItem) {
                 chatItem.remove();
             }
-            loadChatboards({ name: boardName }, sortMessages.value);
+            loadChatboards(data.board, sortMessages.value);
         });
 
         socket.on("newReaction", (data) => {
@@ -219,6 +240,7 @@
             .then(data => {
                 let newData = data;
                 if (data.private) {
+                    chatboardPassword.style.display = "block";
                     let password = chatboardPassword.value;
                     fetch("verifyPassword", {
                         method: "POST",
@@ -240,8 +262,11 @@
                     chatboardSearch.value = "";
                     chatboardPassword.value = "";
                 } else {
+                    chatboardPassword.style.display = "none";
                     loadChatboards(data);
                 }
+                // history.pushState(null, null, `/chatboard/${data.name}`); KEYWORD
+                // renderChatboard(data);
             });
             // window.scrollTo(0, document.body.scrollTop);
         }
@@ -261,10 +286,23 @@
         }
 
         function loadChatboards(data, sort = "popularity") {
-            boardName = data.name;
-            title.textContent = boardName;
-            description.textContent = data.description;
+            boardName = data.name; // hmm
+            // const currentUrl = window.location.pathname; KEYWORD
+            // if (currentUrl.includes("/chatboard/")) {
+            //     const newBoardName = currentUrl.replace("/chatboard/", "");
+            //     if (newBoardName === data.name) {
+            //         renderChatboard(data);
+            //     }
+            // }
+            if (data.name) {
+                chatboardDetails.style.display = "block";
+            }
+            messageContainer.style.display = "block";
+            title.innerHTML = `<h1 style="color: ${data.creator ? data.creator : "fff"}">${boardName} <span style="color: #fff">${data.private ? "| Private" : ""}</span></h1>`;
+            description.innerHTML = data.description;
+            details.innerHTML = `Creator: ${data.creator ? data.creator : "me"} | Lifetime messages: ${data.messages.length ? data.messages.length : "a lot probably"} | Created: ${new Date(data.timestamp).toLocaleString()}`;
             messages.innerHTML = "";
+            currentIndex = 0;
             // chatboards.innerHTML = "";
             fetch(`/messages/${boardName}/${sort}`)
             .then(response => response.json())
@@ -272,10 +310,13 @@
                 while (messages.firstChild) {
                     messages.removeChild(messages.firstChild);
                 }
-
-                for (let msg of messagesData) {
-                    addMessageToList(msg);
-                }
+                messagesData.forEach((msg, index) => {
+                    addMessageToList(msg, index === currentIndex);
+                    console.log(index);
+                });
+                // for (let msg in messagesData) {
+                //     addMessageToList(msg)
+                // }
             });
             if (currentListener) {
                 sortMessages.removeEventListener("change", currentListener);
@@ -286,9 +327,9 @@
             sortMessages.addEventListener("change", currentListener);
         }
 
-        function addMessageToList(msg) {
-            console.log("add");
+        function addMessageToList(msg, isActive) {
             if (msg.message && msg.message.trim()) {
+                console.log("add");
                 let isClicked = false; //now works !!
                 let newFile = "";
                 let emojiList;
@@ -324,14 +365,24 @@
                                     <input type="text" name="username" placeholder="name" value=${username.value || ""}>
                                     <button type="submit">send</button>
                                 </form>
-                                <button class="show-replies">show replies (${msg.replies ? msg.replies.length : 0})</button>
+                                ${msg.replies ? `<button class="show-replies" style="display: none;">show replies (${msg.replies ? msg.replies.length : 0})</button>` : ""}
                                 <ul class="replies" style="display: none">
                                     ${msg.replies ? msg.replies.map(reply => `<div class="my-reply"><li><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
-                                                                            <p style="font-weight: bold">${reply.message}</p> - 
+                                                                            <p style="font-weight: bold">${reply.message} -&nbsp;</p>
                                                                             <span>${reply.username} | ${new Date(reply.timestamp).toLocaleString()}</span></li></div>`).join("") : ""}
                                 </ul>
                                 </div>`;
 
+                if (isActive) {
+                    item.classList.add("active");
+                    item.scrollIntoView({ behavior: "smooth" });
+                }
+                const showReplies = item.querySelector(".show-replies");
+                if (msg.replies) {
+                    showReplies.style.display = "block";
+                } else {
+                    showReplies.style.display = "none";
+                }
                 item.addEventListener("dblclick", () => {
                     if (!isClicked) {
                         isClicked = true;
@@ -375,7 +426,7 @@
                     const newMsg  = replyForm.querySelector("input[name='message']").value;
                     const user = replyForm.querySelector("input[name='username']").value || username.value || "Anonymous";
                     if (newMsg.trim()) {
-                        fetch(`/addReply/${msg._id}`, {
+                        fetch(`/addReply/${msg._id}/${boardName}`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
@@ -389,12 +440,23 @@
                             repliesList.innerHTML = "";
                             update.replies.forEach(reply => {
                                 let replyItem = document.createElement("li");
-                                replyItem.innerHTML = `<div class="my-reply"><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
-                                                        <p style="font-weight: bold">${reply.message}</p> - 
+                                replyItem.innerHTML = `<div class="my-reply"><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"><p class="color"></p></div>
+                                                        <p style="font-weight: bold">${reply.message} -&nbsp;</p>
                                                         <span>${reply.username} | ${new Date(reply.timestamp).toLocaleString}</span></div>`;
                                 repliesList.appendChild(replyItem);
                             });
                         });
+
+                        const cube = replyItem.querySelector(".cube");
+                        const colorDisplay = item.querySelector(".color");
+
+                        cube.addEventListener("mouseover", () => {
+                            colorDisplay.innerHTML = `${reply.color}<br>`;
+                        });
+                        cube.addEventListener("mouseleave", () => {
+                            colorDisplay.innerHTML = "";
+                        });
+
                         newMsg.value = "";
                         replyForm.querySelector("input[name='username']").value = user;
                     }
@@ -403,10 +465,10 @@
                 const colorDisplay = item.querySelector(".color");
 
                 cube.addEventListener("mouseover", () => {
-                    colorDisplay.textContent = msg.color;
+                    colorDisplay.innerHTML = `${msg.color}<br>`;
                 });
                 cube.addEventListener("mouseleave", () => {
-                    colorDisplay.textContent = "";
+                    colorDisplay.innerHTML = "";
                 });
 
                 repliesButton.addEventListener("click", () => {
@@ -438,25 +500,136 @@
                 item.querySelector(".status").innerHTML = "| private";
             }
             item.addEventListener("click", () => {
+                // history.pushState(null, null, `/chatboard/${chatboard.name}`); KEYWORD
+                // renderChatboard(chatboard);
                 searchChatboards(chatboard.name);
             });
             chatboards.appendChild(item);
         }
 
+        // function renderChatboard(data) { KEYWORD
+        //     messages.innerHTML = "";
+        //     // title.textContent = data.name;
+        //     // description.textContent = data.description;
+
+        //     for (let msg of data.messages) {
+        //         addMessageToList(msg);
+        //     }
+        // }
+
+        function navigateMessages(delta) {
+            const messageItems = Array.from(messages.children);
+            const nextIndex = currentIndex + delta;
+
+            if (nextIndex >= 0 && nextIndex < messageItems.length) {
+                if (currentIndex != -1) {
+                    messageItems[currentIndex].classList.remove("active");
+                }
+                messageItems[nextIndex].classList.add("active");
+                currentIndex = nextIndex;
+                messageItems[nextIndex].scrollIntoView({ behavior: "smooth" });
+            } else if (nextIndex === 0) {
+                if (currentIndex != -1) {
+                    messageItems[currentIndex].classList.remove("active");
+                }
+                messageItems[nextIndex].classList.add("active");
+                currentIndex = nextIndex;
+                messageItems[nextIndex].scrollIntoView({ behavior: "smooth" });
+            }
+        }
+
+        function loadMoreChatboards() {
+            const sort = sortChatboards.value;
+
+            fetch(`/getChatboards/${sort}/${skipChatboards}`)
+                .then((response) => response.json())
+                .then((chatboardsData) => {
+                    if (chatboardsData.length > 0) {
+                        chatboardsData.forEach((chatboard) => {
+                            addChatboardToList(chatboard);
+                        });
+                        chatboardCount += chatboardsData.length;
+                        skipChatboards += chatboardsData.length;
+                    }
+                    loadingMore = false;
+                });
+        }
+
+        // window.addEventListener("scroll", () => {
+        //     const scrollingHeight = document.documentElement.scrollHeight - window.innerHeight;
+        //     const scrollPosition = window.scrollY;
+
+        //     if (!loadingMore && scrollPosition === scrollingHeight) {
+        //         loadingMore = true;
+        //         loadMoreChatboards();
+        //     }
+        // });
+
         const sidebar = document.querySelector(".sidebar");
         const main = document.querySelector(".chatboard-content");
-        sidebar.style.width = '250px';
-            main.style.marginLeft = '250px';
+        sidebar.style.width = "350px";
+        main.style.marginLeft = "350px";
 
-        document.getElementById('sidebar-toggle').addEventListener('click', function () {
-
-        if (sidebar.style.width === '0px') {
-            sidebar.style.width = '250px';
-            main.style.marginLeft = '250px';
+        document.getElementById("sidebar-toggle").addEventListener("click", () => {
+        if (sidebar.style.width === "0px") {
+            sidebar.style.width = "350px";
+            sidebar.style.display = "block";
+            main.style.marginLeft = "350px";
         } else {
-            sidebar.style.width = '0px';
-            main.style.marginLeft = '0px';
+            sidebar.style.width = "0px";
+            sidebar.style.display = "none";
+            main.style.marginLeft = "0px";
         }
+        });
+
+        chatboardPriv.addEventListener("click", () => {
+            if (chatboardPass.style.display === "none") {
+                chatboardPass.style.display = "block";
+            } else {
+                chatboardPass.style.display = "none";
+            }
+        });
+
+        chatboardToggle.addEventListener("click", () => {
+            if (chatboardContainer.style.opacity === "0") {
+                chatboardContainer.style.opacity = "1";
+                chatboardContainer.style.height = "auto";
+                chatboardContainer.style.margin = "2rem auto";
+            } else {
+                chatboardContainer.style.opacity = "0";
+                chatboardContainer.style.height = "0px";
+                chatboardContainer.style.margin = "-2rem";
+            }
+        });
+
+        let myTimeout = 1000;
+
+        document.addEventListener("keydown", (even) => {
+            if (event.key === "ArrowUp") {
+                chatboardTitle.style.opacity = "0";
+                myTimeout += 1000;
+                event.preventDefault();
+                navigateMessages(-1);
+            } else if (event.key === "ArrowDown") {
+                chatboardTitle.style.opacity = "0";
+                myTimeout += 1000;
+                event.preventDefault();
+                navigateMessages(1);
+            }
+            setTimeout(() => {
+                chatboardTitle.style.opacity = "1";
+            }, myTimeout);
+        });
+
+        document.addEventListener("wheel", () => {
+            event.preventDefault();
+            chatboardTitle.style.opacity = "0";
+            setTimeout(() => {
+                chatboardTitle.style.opacity = "1";
+            }, 1000);
+            const delta = Math.sign(event.deltaY);
+            navigateMessages(delta);
+            console.log(delta);
         });
     </script>
 </body>
