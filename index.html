@@ -112,6 +112,7 @@
         let loadingMore = false;
         let chatboardCount = 0;
         let skipChatboards = 0;
+        let canScroll = true;
 
         window.onload = (event) => {
             getChatboards(sortChatboards.value);
@@ -155,6 +156,18 @@
             }
         });
 
+        boardInput.addEventListener("change", () => {
+            if (boardInput.value.trim()) {
+                searchChatboards(boardInput.value);
+            }
+        });
+
+        chatboardSearchPassword.addEventListener("change", () => {
+            if (boardInput.value.trim()) {
+                searchChatboards(boardInput.value);
+            }
+        });
+
         send.addEventListener("click", () => {
             const newBoard = boardName || boardInput.value;
             if (newBoard && input.value.trim()) {
@@ -186,11 +199,16 @@
                     //     }
                     // });
                     // loadChatboards(msg, sortMessages.value);
+                })
+                .catch((error) => {
+                    console.log("woops", error);
                 });
                 input.value = "";
+                fileUpload.value = "";
                 if (boardInput.value.trim()) {
                     searchChatboards(newBoard);
                 }
+                boardInput.value = boardName;
             }
         });
 
@@ -249,8 +267,11 @@
             .then(data => {
                 let newData = data;
                 if (data.private) {
-                    chatboardPassword.style.display = "block";
-                    chatboardSearchPassword.style.display = "block";
+                    if (document.getElementById("chatboard-search").value.trim()) {
+                        chatboardPassword.style.display = "block";
+                    } else {
+                        chatboardSearchPassword.style.display = "block";
+                    }
                     let password = chatboardPassword.value || chatboardSearchPassword.value;
                     fetch("verifyPassword", {
                         method: "POST",
@@ -273,11 +294,11 @@
                     chatboardPassword.value = "";
                     chatboardSearchPassword.value = "";
                 } else {
+                    chatboardPassword.style.display = "none";
+                    chatboardSearchPassword.style.display = "none";
                     boardInput.value = chatboardSearch;
                     loadChatboards(data);
                 }
-                chatboardPassword.style.display = "none";
-                chatboardSearchPassword.style.disply = "none";
                 // history.pushState(null, null, `/chatboard/${data.name}`); KEYWORD
                 // renderChatboard(data);
             });
@@ -326,7 +347,6 @@
                 }
                 messagesData.forEach((msg, index) => {
                     addMessageToList(msg, index === currentIndex);
-                    console.log(index);
                 });
                 // for (let msg in messagesData) {
                 //     addMessageToList(msg)
@@ -351,14 +371,25 @@
                 item.setAttribute("data-id", msg._id);
 
                 if (msg.image && msg.imageMime) {
-                    const mimeType = msg.imageMime;
-                    if (mimeType && mimeType.startsWith("image/")) {
-                        newFile = `<img src="${msg.image}" alt="${msg.message}"/>`;
-                    } else if (mimeType && mimeType === "application/pdf") {
-                        // newFile = `<object data="${msg.image}" type="application/pdf"></object>
-                        //         <a href="${msg.image}">download</a>`;
-                    } else {
-                        newFile = `<p>bro thinks he can upload anything BUT an image or pdf 🤓🤓🤓🤓<p>`;
+                    const fileUrl = `/download/${msg._id}`;
+                    const mime = msg.imageMime;
+
+                    if (mime.startsWith("image/")) {
+                        newFile = `<img src="${fileUrl}" alt="${mime}"/>
+                                    <a href="${fileUrl}" download>downlaod</a>`;
+                    } else if (mime.startsWith("video/")) {
+                        newFile = `<video controls>
+                                        <source src="${fileUrl}" type="${mime}">
+                                        <a href="${fileUrl}" download>downlaod</a>
+                                    </video>`;
+                    } else if (mime.startsWith("audio/")) {
+                        newFile = `<audio controls>
+                                        <source src="${fileUrl}" type="${mime}">
+                                        <a href="${fileUrl}" download>downlaod</a>
+                                    </audio>`;
+                    } else if (mime === "application/pdf") {
+                        newFile = `<embed src="${fileUrl}" frameBorder="0" scrolling="auto" width="100%" height="70%"/>
+                                    <a href="${fileUrl}" download>downlaod</a>`;
                     }
                 }
                 
@@ -490,9 +521,11 @@
                     if (repliesList.style.display === "none") {
                         repliesList.style.display = "block";
                         repliesButton.textContent = `hide replies (${msg.replies ? msg.replies.length : 0})`;
+                        canScroll = false;
                     } else {
                         repliesList.style.display = "none"
                         repliesButton.textContent = `show replies (${msg.replies ? msg.replies.length : 0})`;
+                        canScroll = true;
                     }
                 });
 
@@ -516,6 +549,7 @@
             item.addEventListener("click", () => {
                 // history.pushState(null, null, `/chatboard/${chatboard.name}`); KEYWORD
                 // renderChatboard(chatboard);
+                chatboardSearch.value = "";
                 searchChatboards(chatboard.name);
             });
             chatboards.appendChild(item);
@@ -619,12 +653,12 @@
         let myTimeout = 1000;
 
         document.addEventListener("keydown", (even) => {
-            if (event.key === "ArrowUp") {
+            if (event.key === "ArrowUp" && canScroll) {
                 chatboardTitle.style.opacity = "0";
                 myTimeout += 1000;
                 event.preventDefault();
                 navigateMessages(-1);
-            } else if (event.key === "ArrowDown") {
+            } else if (event.key === "ArrowDown" && canScroll) {
                 chatboardTitle.style.opacity = "0";
                 myTimeout += 1000;
                 event.preventDefault();
@@ -642,8 +676,9 @@
                 chatboardTitle.style.opacity = "1";
             }, 1000);
             const delta = Math.sign(event.deltaY);
-            navigateMessages(delta);
-            console.log(delta);
+            if (canScroll) {
+                navigateMessages(delta);
+            }
         });
     </script>
 </body>

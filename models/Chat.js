@@ -7,7 +7,7 @@ const chatSchema = new mongoose.Schema({
         emoji: String,
         reacted: String 
     }],
-    image: String,
+    image: Buffer,
     imageMime: String,
     views: Number,
     color: String,

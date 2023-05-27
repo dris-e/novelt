@@ -6,32 +6,15 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cron = require("node-cron");
 const bcrypt = require("bcrypt");
+const sharp = require("sharp");
 const fs = require("fs").promises;
 const path = require("path");
 const bodyParser = require("body-parser");
 const Chat = require("./models/Chat");
 const Chatboard = require("./models/Chatboard");
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "uploads/");
-    },
-    filename: (req, file, cb) => {
-        cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
-    }
-});
 const upload = multer({ 
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-        const filetypes = /jpeg|jpg|png|webp|heic|gif|pdf/;
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase()); // what a safe and non expolituable way of chcecking file types
-        const mimetype = filetypes.test(file.mimetype);
-
-        if (mimetype && extname) {
-            return cb(null, true);
-        }
-        cb(`only uplaod these files thajnks ${filetypes}`);
-    },
+    storage: multer.memoryStorage(),
     limits: {
         fileSize: 2000 * 1000
     }
@@ -62,7 +45,7 @@ let nextReset;
 //store ip as first 10 digits of hash x
 //show trending messages on homepage
 //load first 10 on scroll
-//show one at a time, similar to tiktok
+//show one at a time, similar to tiktok x?
 
 const app = express();
 const server = http.createServer(app);
@@ -86,7 +69,7 @@ async function deleteMsgs() {
         msg.username = "";
         msg.message = "";
         msg.reactions = [];
-        msg.image = "";
+        msg.image = Buffer.alloc(0);
         msg.imageMime = "";
         msg.color = "";
         msg.timestamp = null;
@@ -165,11 +148,20 @@ app.get("/", (req, res) => {
 //     res.sendFile(path.join(__dirname, "styles.css"), { headers: { "Content-Type": "text/css"} })
 // });
 
-app.get("/download/:file(*)", (req, res) => {
+app.get("/download/:file(*)", async (req, res) => {
     const file = req.params.file;
-    const fileLocation = path.join("./uploads", file);
-    console.log(fileLocation, file);
-    res.download(fileLocation, file);
+    const message = await Chat.findOne({ _id: file });
+
+    if (message) {
+        const image = message.image;
+        const imageMime = message.imageMime;
+        if (image && imageMime) {
+            res.set("Content-Type", imageMime);
+            res.send(image);
+        } else {
+            return res.status(404).send({ message: "file not treal" });
+        }
+    }
 });
 
 app.post("/createChatboard", async (req, res) => {
@@ -223,15 +215,25 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
             username: newUsername,
             message,
             reactions,
-            image: file ? file.path : null,
-            imageMime: file ? file.mimetype : null,
+            image: null,
+            imageMime: null,
             views: 0,
             color: `#${ip.substring(0, 6)}`,
             timestamp: new Date(),
             replies: [],
             viewed: []
         });
+        if (file) {
+            const compressedBuffer = await sharp(file.buffer)
+            .resize(500)
+            .jpeg({ quality: 50 })
+            .png({ quality: 50 })
+            .webp({ quality: 50 })
+            .toBuffer();
 
+            chatMessage.image = compressedBuffer;
+            chatMessage.imageMime = file.mimetype;
+        }
         await chatMessage.save();
         chatboard.messages.push(chatMessage);
         await chatboard.save();
@@ -338,7 +340,7 @@ app.get("/getChatboards/:sort/:skip?", async (req, res) => {
         const validMessages = chatboard.messages.filter(message => message !== "");
         chatboard.messages.forEach(message => {
             totalViews += message.views;
-            totalImages += message.image ? 1 : 0;
+            totalImages += message.imageMime ? 1 : 0;
         });
 
         chatboard.popularityScore = (totalViews || 1) * (totalImages || 1) * (validMessages.length || 1);
@@ -391,7 +393,7 @@ app.get("/messages/:chatboardName/:sort?", async (req, res) => {
                 // }
                 await message.save();
             }
-            message.popularityScore = (message.views || 1) * (message.reactions.length || 1) * (message.replies.length || 1) * (message.image ? 2 : 1);
+            message.popularityScore = (message.views || 1) * (message.reactions.length || 1) * (message.replies.length || 1) * (message.imageMime ? 2 : 1);
         });
 
         if (sort === "popularity") {
@@ -426,6 +428,31 @@ server.listen(port, () => {
 
 
 
+
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, "uploads/");
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
+//     }
+// });
+// const upload = multer({ 
+//     storage: storage,
+//     fileFilter: (req, file, cb) => {
+//         const filetypes = /jpeg|jpg|png|webp|heic|gif|pdf/;
+//         const extname = filetypes.test(path.extname(file.originalname).toLowerCase()); // what a safe and non expolituable way of chcecking file types
+//         const mimetype = filetypes.test(file.mimetype);
+
+//         if (mimetype && extname) {
+//             return cb(null, true);
+//         }
+//         cb(`only uplaod these files thajnks ${filetypes}`);
+//     },
+//     limits: {
+//         fileSize: 2000 * 1000
+//     }
+// });
 
 
 // app.get("/messages/:chatboardName", async (req, res) => {
