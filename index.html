@@ -1120,6 +1120,7 @@
                 transform-origin: top;
                 margin-bottom: 1rem !important;
                 max-height: 100vh !important;
+                background: #0b0913;
             }
 
             #loading-messages {
@@ -1164,10 +1165,12 @@
             }
 
             li .my-message {
-                filter: blur(2px);
+                filter: blur(1px);
             }
 
             li.active > .my-message, .my-message:hover, .my-message:active {
+                margin-top: 50% !important;
+                align-self: center;
                 filter: blur(0px) !important;
             }
         }
