@@ -764,7 +764,7 @@
 
         let myTimeout = 1000;
 
-        document.addEventListener("keydown", (even) => {
+        document.addEventListener("keydown", (event) => {
             if (event.key === "ArrowUp" && canScroll) {
                 chatboardTitle.style.opacity = "0";
                 myTimeout += 1000;
@@ -792,6 +792,24 @@
                 navigateMessages(delta);
             }
         });
+
+        let touchStartY = 0;
+
+        document.addEventListener("touchstart", (event) => {
+            touchStartY = event.touches[0].clientY;
+        }); 
+
+        document.addEventListener("touchmove", (event) => {
+            event.preventDefault();
+        });
+
+        document.addEventListener("touchend", (event) => {
+            const touchEndY = event.changedTouches[0].clientY;
+            const delta = Math.sign(touchEndY - touchStartY);
+            if (canScroll) {
+                navigateMessages(delta);
+            }
+        });
     </script>
     <style>
         @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;800&display=swap");
@@ -808,16 +826,16 @@
             display: grid;
             justify-content: center;
             align-items: center;
-            /* background: linear-gradient(
+            background: linear-gradient(
                 125deg,
                 #0b0913,
                 #150c27,
-                #270a37
+                #270a37,
                 #1f0a2e,
                 #1d2461,
                 #150c27
-            ); */
-            background: #0b0913;
+            );
+            /* background: #0b0913; */
             color: #fff;
             text-shadow: -5px -5px 10px #393939, 5px 5px 15px #1d1d1d;
         }
@@ -1145,13 +1163,13 @@
                 display: none;
             }
 
-            /* li .my-message {
+            li .my-message {
                 filter: blur(2px);
             }
 
             li.active > .my-message, .my-message:hover, .my-message:active {
                 filter: blur(0px) !important;
-            } */
+            }
         }
     </style>
 </body>
