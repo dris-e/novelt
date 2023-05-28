@@ -46,7 +46,8 @@ let nextReset;
 //REPLIES VIEW COUNT DO NOT WORK!!! x (no longer here)
 //sort by latest/most popular x
 //image upload x (DOES NOT WORK ON SERVER, USE AWS) x (fixed)
-//links/routes for every chatboard (if not cookies to last chatboard)
+//links/routes for every chatboard (if not cookies to last chatboard) x
+//PASSWORDS DONT WORK ANYMORE !!! x (they do now)
 //save last chatboard user was on in cookies x
 //same timezone everywhere x
 //allow all file types and sort content by filetype x
@@ -153,11 +154,11 @@ app.use((err, req, res, next) => {
 });
 app.use(bodyParser.json());
 
-// app.get("/chatboard/:chatboardName", (req, res) => {
-//     const chatboardName = req.params.chatboardName;
+app.get("/chatboard/:chatboardName", (req, res) => {
+    const chatboardName = req.params.chatboardName;
 
-//     res.sendFile(path.join(__dirname, "index.html"));
-// });
+    res.sendFile(path.join(__dirname, "index.html"));
+});
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
