@@ -25,6 +25,10 @@
             <option value="popularity">popularity (default)</option>
             <option value="latest">latest</option>
         </select>
+        <div id="loading-chatboards" class="loading-container">
+            <span class="loading-text">loading chatboards</span>
+            <div class="loading-spinner"></div>
+        </div>
         <ul id="chatboards"></ul>
     </div>
 
@@ -80,6 +84,11 @@
             <div class="chatboard-container">
                 <ul id="messages"></ul>
             </div>
+        </div>
+
+        <div id="loading-messages" class="loading-container">
+            <span class="loading-text">laoding messages</span>
+            <div class="loading-spinner"></div>
         </div>
     </div>
     <script>
@@ -319,6 +328,7 @@
         }
 
         function getChatboards(sort = "popularity") {
+            showLoading("loading-chatboards");
             fetch(`/getChatboards/${sort}`)
             .then(response => response.json())
             .then(data => {
@@ -329,10 +339,12 @@
                 for(let chatboard of data){
                     addChatboardToList(chatboard);
                 }
+                hideLoading("loading-chatboards");
             });
         }
 
         function loadChatboards(data, sort = "popularity") {
+            showLoading("loading-messages");
             boardName = data.name; // hmm
             // const currentUrl = window.location.pathname; KEYWORD
             // if (currentUrl.includes("/chatboard/")) {
@@ -364,6 +376,7 @@
                 // for (let msg in messagesData) {
                 //     addMessageToList(msg)
                 // }
+                hideLoading("loading-messages");
             });
             if (currentListenerOne) {
                 sortMessages.removeEventListener("change", currentListenerOne);
@@ -631,6 +644,16 @@
                     }
                     loadingMore = false;
                 });
+        }
+
+        function showLoading(elementId) {
+            const loadingElement = document.getElementById(elementId);
+            loadingElement.style.display = "flex";
+        }
+
+        function hideLoading(elementId) {
+            const loadingElement = document.getElementById(elementId);
+            loadingElement.style.display = "none";
         }
 
         // window.addEventListener("scroll", () => {
