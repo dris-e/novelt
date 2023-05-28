@@ -1020,6 +1020,7 @@
         #timer {
             margin-top: auto;
             margin-left: 1rem;
+            text-align: left !important;
         }
 
         #title-text {
@@ -1122,7 +1123,7 @@
 
         @media (max-width: 760px) {
             body {
-                transform: scale(0.75);
+                transform: scale(0.8);
                 transform-origin: top;
                 margin-bottom: 1rem !important;
                 max-height: 100vh !important;
@@ -1172,15 +1173,22 @@
 
             li .my-message {
                 display: none;
-                filter: blur(1px);
+                /* filter: blur(1px); */
             }
 
-            li.active > .my-message, .my-message:hover, .my-message:active {
+            li.active > .my-message {
+                display: block !important;
+                margin-top: 50% !important;
+                align-self: center;
+                /* filter: blur(0px) !important; */
+            }
+
+            /* li.active > .my-message, .my-message:hover, .my-message:active {
                 display: block !important;
                 margin-top: 50% !important;
                 align-self: center;
                 filter: blur(0px) !important;
-            }
+            } */
         }
     </style>
 </body>
