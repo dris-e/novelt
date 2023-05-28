@@ -150,6 +150,10 @@ select {
     flex-direction: column;
 }
 
+.my-chatboard-container {
+    margin-top: 6rem !important;
+}
+
 .my-reply li {
     display: flex;
     justify-content: left;
@@ -247,7 +251,9 @@ select {
 }
 
 #loading-messages {
-    margin-top: -5rem;
+    margin-top: 3rem;
+    margin-bottom: -1rem;
+    font-weight: bold;
 }
 
 .loading-text {

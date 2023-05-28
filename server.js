@@ -53,12 +53,14 @@ let nextReset;
 //read-only chatboards, pinned messages
 //add replies without reloading page
 //add banner images ?
+//save sort and toggle options to cookies
 
 //optimization
 //dont load and empty messages x
 //store ip as first 10 digits of hash x
 //show trending messages on homepage
 //load first 10 on scroll
+//load video/audio in parts not at same time & compress video/aduoi
 //show one at a time, similar to tiktok x?
 //read more appears if text is over certain limit x
 
