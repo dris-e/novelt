@@ -685,17 +685,23 @@
             if (nextIndex >= 0 && nextIndex < messageItems.length) {
                 if (currentIndex != -1) {
                     messageItems[currentIndex].classList.remove("active");
+                    document.querySelector("body").style.overflowY = "visible";
                 }
                 messageItems[nextIndex].classList.add("active");
+                document.querySelector("body").style.overflowY = "hidden";
                 currentIndex = nextIndex;
                 messageItems[nextIndex].scrollIntoView({ behavior: "smooth" });
             } else if (nextIndex === 0) {
                 if (currentIndex != -1) {
                     messageItems[currentIndex].classList.remove("active");
+                    document.querySelector("body").style.overflowY = "visible";
                 }
                 messageItems[nextIndex].classList.add("active");
+                document.querySelector("body").style.overflowY = "hidden";
                 currentIndex = nextIndex;
                 messageItems[nextIndex].scrollIntoView({ behavior: "smooth" });
+            } else if (currentIndex === 0) {
+                document.querySelector("body").style.overflowY = "visible"
             }
         }
 
