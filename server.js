@@ -139,8 +139,13 @@ setInterval(() => {
 }, 1000);
 
 function hashKey(key) {
-    const hash = crypto.createHash("sha256");
-    return hash.update(key).digest("hex");
+    if (key) {
+        const hash = crypto.createHash("sha256");
+        return hash.update(key).digest("hex");
+    } else {
+        console.log("minor oopsy");
+        return "00000000";
+    }
 }
 
 app.use(express.static(path.join(__dirname, ".")));
@@ -187,7 +192,7 @@ app.get("/download/:file(*)", async (req, res) => {
 app.post("/createChatboard", async (req, res) => {
     const { name, description, username, private, read, pass } = req.body;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-    const ip = hashKey(dehashIP).substring(0, 8);
+    const ip = hashKey(dehashIP).substring(0, 8) || "000000";
 
     if (!name.trim()) {
         return res.status(400).json({ message: "chatboard name cant be empty" });
@@ -227,7 +232,7 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
     const { message, username, reactions } = req.body;
     const { file } = req;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-    const ip = hashKey(dehashIP).substring(0, 8);
+    const ip = hashKey(dehashIP).substring(0, 8) || "000000";
     const extensions = ["jpeg", "jpg", "png", "webp", "gif"];
     const chatboard = await Chatboard.findOne({ name: chatboardName });
 
@@ -277,7 +282,7 @@ app.post("/addReply/:chatId/:boardName?", async (req, res) => {
     const boardName = req.params.boardName;
     const { user, newMsg } = req.body;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-    const ip = hashKey(dehashIP).substring(0, 8);
+    const ip = hashKey(dehashIP).substring(0, 8) || "000000";
 
     const reply = { 
         username: user, 
@@ -306,7 +311,7 @@ app.post("/addReaction/:chatId", async (req, res) => {
     const chatId = req.params.chatId;
     const { emoji } = req.body;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-    const ip = hashKey(dehashIP).substring(0, 8);
+    const ip = hashKey(dehashIP).substring(0, 8) || "000000";
     const message = await Chat.findOne({ _id: chatId });
 
     if (message) {
@@ -410,14 +415,14 @@ app.get("/messages/:chatboardName/:sort?", async (req, res) => {
 
     if(chatboard) {
         const dehashIP = req.headers["x-forwarded-for"] || req.ip;
-        const ip = hashKey(dehashIP).substring(0, 8);
+        const ip = hashKey(dehashIP).substring(0, 8) || "000000";
         let messages = chatboard.messages;
 
         messages.forEach(async (message) => {
             if (!message.viewed.includes(ip) && message.message !== "") {
                 message.viewed.push(ip);
                 message.views++;
-                message.color = `#${ip.substring(0, 6)}`;
+                // message.color = `#${ip.substring(0, 6)}`; why was this a thing
                 // for (let reply of message.replies) {
                 //     if (!reply.viewed.includes(ip)) {
                 //         reply.viewed.push(ip);
