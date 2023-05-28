@@ -476,7 +476,7 @@
                 }, {});
                 item.innerHTML = `<div class="my-message">
                                 <div class="cube-container">
-                                    <div class="cube" style="width: 20px; height: 20px; background-color: ${msg.color}"></div><p class="color"></p><h4>${msg.username} - <span style="font-weight: normal; font-style: italic;">${new Date(msg.timestamp).toLocaleString()}:</span></h4>
+                                    <div class="cube" style="width: 20px; height: 20px; background-color: ${msg.color}">${msg.username.substring(0, 1)}</div><p class="color"></p><h4>${msg.username} - <span style="font-weight: normal; font-style: italic;">${new Date(msg.timestamp).toLocaleString()}:</span></h4>
                                 </div>
                                 <h3><span class="msg-message" style="font-weight: bold">${text ? text : msg.message}</span> <span style="font-weight: 400">| ${msg.views} ${msg.views === 1 ? "view" : "views"}</span></h3>
                                 ${readMore}
@@ -490,7 +490,7 @@
                                 </form>
                                 <button class="show-replies" style="display: none;">show replies (${msg.replies ? msg.replies.length : 0})</button>
                                 <ul class="replies" style="display: none">
-                                    ${msg.replies ? msg.replies.map(reply => `<div class="my-reply"><li><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"></div>
+                                    ${msg.replies ? msg.replies.map(reply => `<div class="my-reply"><li><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}">${reply.username.substring(0, 1)}</div>
                                                                             <p style="font-weight: bold">${reply.message} -&nbsp;</p>
                                                                             <span>${reply.username} | ${new Date(reply.timestamp).toLocaleString()}</span></li></div>`).join("") : ""}
                                 </ul>
@@ -514,10 +514,12 @@
                     readMoreButton.addEventListener("click", () => {
                         if (readMoreButton.textContent === "read more") {
                             canScroll = false;
+                            document.querySelector("body").style.overflowY = "visible";
                             currentMessage.textContent = msg.message;
                             readMoreButton.textContent = "read less";
                         } else {
                             canScroll = true;
+                            document.querySelector("body").style.overflowY = "hidden";
                             currentMessage.textContent = text;
                             readMoreButton.textContent = "read more";
                         }
@@ -580,21 +582,21 @@
                             repliesList.innerHTML = "";
                             update.replies.forEach(reply => {
                                 let replyItem = document.createElement("li");
-                                replyItem.innerHTML = `<div class="my-reply"><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}"><p class="color"></p></div>
+                                replyItem.innerHTML = `<div class="my-reply"><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}">${reply.username.substring(0, 1)}<p class="color"></p></div>
                                                         <p style="font-weight: bold">${reply.message} -&nbsp;</p>
                                                         <span>${reply.username} | ${new Date(reply.timestamp).toLocaleString}</span></div>`;
                                 repliesList.appendChild(replyItem);
+
+                                const cube = replyItem.querySelector(".cube");
+                                const colorDisplay = item.querySelector(".color");
+
+                                cube.addEventListener("mouseover", () => {
+                                    colorDisplay.innerHTML = `${reply.color}<br>`;
+                                });
+                                cube.addEventListener("mouseleave", () => {
+                                    colorDisplay.innerHTML = "";
+                                });
                             });
-                        });
-
-                        const cube = replyItem.querySelector(".cube");
-                        const colorDisplay = item.querySelector(".color");
-
-                        cube.addEventListener("mouseover", () => {
-                            colorDisplay.innerHTML = `${reply.color}<br>`;
-                        });
-                        cube.addEventListener("mouseleave", () => {
-                            colorDisplay.innerHTML = "";
                         });
 
                         newMsg.value = "";
@@ -605,7 +607,7 @@
                 const colorDisplay = item.querySelector(".color");
 
                 cube.addEventListener("mouseover", () => {
-                    colorDisplay.innerHTML = `${msg.color}<br>`;
+                    colorDisplay.innerHTML = `${msg.color}&nbsp;`;
                 });
                 cube.addEventListener("mouseleave", () => {
                     colorDisplay.innerHTML = "";
@@ -616,10 +618,12 @@
                     if (repliesList.style.display === "none") {
                         repliesList.style.display = "block";
                         repliesButton.textContent = `hide replies (${msg.replies ? msg.replies.length : 0})`;
+                        document.querySelector("body").style.overflowY = "visible";
                         canScroll = false;
                     } else {
                         repliesList.style.display = "none"
                         repliesButton.textContent = `show replies (${msg.replies ? msg.replies.length : 0})`;
+                        document.querySelector("body").style.overflowY = "hidden";
                         canScroll = true;
                     }
                 });
@@ -643,6 +647,8 @@
             }
             item.addEventListener("click", () => {
                 history.pushState(null, null, `/chatboard/${chatboard.name}`);
+                sidebar.classList.toggle("sidebar-open");
+                main.classList.toggle("main-expanded");
                 renderChatboard(chatboard);
                 chatboardSearch.value = "";
                 searchChatboards(chatboard.name);
@@ -700,8 +706,8 @@
                 document.querySelector("body").style.overflowY = "hidden";
                 currentIndex = nextIndex;
                 messageItems[nextIndex].scrollIntoView({ behavior: "smooth" });
-            } else if (currentIndex === 0) {
-                // document.querySelector("body").style.overflowY = "visible";
+            } else if (currentIndex === 0 ) {
+                document.querySelector("body").style.overflowY = "visible";
             }
         }
 
@@ -926,7 +932,14 @@
 
         .cube {
             height: 2rem !important;
+            display: inline-block;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
             width: 2rem !important;
+            text-shadow: 0px 0px 10px #393939, 0px 0px 15px #1d1d1d;
             border-radius: 50%;
             margin-right: 0.5rem;
             border: .2px solid #fff;
@@ -1100,6 +1113,7 @@
 
         .sidebar-open {
             opacity: 0;
+            height: 0px !important;
             width: 0px !important;
         }
 
@@ -1172,12 +1186,16 @@
             }
 
             li .my-message {
+                transform: scale(1) !important;
+                opacity: 0;
+                margin-top: 0;
                 display: none;
                 /* filter: blur(1px); */
             }
 
             li.active > .my-message {
-                display: block !important;
+                opacity: 1 !important;
+                display: block;
                 margin-top: 50% !important;
                 align-self: center;
                 /* filter: blur(0px) !important; */
