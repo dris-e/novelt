@@ -106,7 +106,7 @@ setInterval(() => {
     target.setHours(0, targetTime, 0);
 
     if (now > target) {
-        target.setDate(target.getDate() - 1);
+        target.setDate(target.getDate() + 1);
     }
     
     const diff = target - now;
