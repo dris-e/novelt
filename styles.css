@@ -118,11 +118,15 @@ img, video, audio, embed {
     box-shadow: -5px -5px 10px #393939, 5px 5px 15px #1d1d1d;
 }
 
-a {
+button:has(> a) {
     display: block;
     margin: auto;
-    max-width: 100%;
-    text-align: center;
+    margin-top: 1rem;
+    text-decoration: none;
+}
+
+select {
+    margin-right: 1rem;
 }
 
 /* img:hover ~ a, video:hover, audio:hover, embed:hover {

@@ -15,8 +15,19 @@ const Chatboard = require("./models/Chatboard");
 
 const upload = multer({ 
     storage: multer.memoryStorage(),
+    // fileFilter: (req, file, cb) => {
+    //     const allowedFiles = /jpeg|jpg|png|webp|webm|ogg|heic|gif|pdf|mp4|mov|avi|mp3|wav|zip/;
+    //     const extname = allowedFiles.test(path.extname(file.originalname).toLowerCase());
+    //     const mimetype = allowedFiles.test(file.mimetype);
+
+    //     if (extname && mimetype) {
+    //         cb(null, true);
+    //     } else {
+    //         cb(new Error("wrgong file type stop it"));
+    //     }
+    // },
     limits: {
-        fileSize: 50000 * 1000
+        fileSize: 5000 * 1000
     }
 });
 require("dotenv").config();
@@ -37,8 +48,11 @@ let nextReset;
 //image upload x (DOES NOT WORK ON SERVER, USE AWS)
 //links/routes for every chatboard (if not cookies to last chatboard)
 //save last chatboard user was on in cookies
-//same timezone everywhere
-//allow all file types and sort content by filetype
+//same timezone everywhere x
+//allow all file types and sort content by filetype x
+//read-only chatboards
+//pinned messages
+//add replies without reloading page
 
 //optimization
 //dont load and empty messages x
@@ -46,6 +60,7 @@ let nextReset;
 //show trending messages on homepage
 //load first 10 on scroll
 //show one at a time, similar to tiktok x?
+//read more appears if text is over certain limit
 
 const app = express();
 const server = http.createServer(app);
@@ -79,15 +94,15 @@ async function deleteMsgs() {
     console.log("message is kil");
     io.emit("reloadMessages", messages);
 
-    try {
-        const dir = "./uploads";
-        const files = await fs.readdir(dir);
-        const deleteProms = files.map(filename => fs.unlink(path.join(dir, filename)));
-        await Promise.all(deleteProms);
-        console.log("image is kil");
-    } catch (error) {
-        console.log("oops", error);
-    }
+    // try {
+    //     const dir = "./uploads";
+    //     const files = await fs.readdir(dir);
+    //     const deleteProms = files.map(filename => fs.unlink(path.join(dir, filename)));
+    //     await Promise.all(deleteProms);
+    //     console.log("image is kil");
+    // } catch (error) {
+    //     console.log("oops", error);
+    // }
 
     //delete chatbaorsd (for testigm ONLY!)
     // Chatboard.deleteMany({}, function(err) { 
@@ -209,6 +224,7 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
     const { file } = req;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
     const ip = hashKey(dehashIP).substring(0, 8);
+    const extensions = ["jpeg", "jpg", "png", "webp", "gif"];
     const chatboard = await Chatboard.findOne({ name: chatboardName });
 
     if (chatboard) { //edit this if edit chat
@@ -225,7 +241,7 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
             replies: [],
             viewed: []
         });
-        if (file) {
+        if (file && extensions.includes(path.extname(file.originalname).toLowerCase().substring(1))) {
             const compressedBuffer = await sharp(file.buffer)
             .resize(500)
             .jpeg({ quality: 50 })
@@ -235,6 +251,10 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
             .toBuffer();
 
             chatMessage.image = compressedBuffer;
+            chatMessage.imageMime = file.mimetype;
+        } else if (file) {
+            console.log(file.mimetype); //not imaeg file
+            chatMessage.image = file.buffer;
             chatMessage.imageMime = file.mimetype;
         }
         await chatMessage.save();
@@ -374,13 +394,14 @@ app.get("/searchChatboard/:name", async (req, res) => {
 app.get("/messages/:chatboardName/:sort?", async (req, res) => {
     const chatboardName = req.params.chatboardName;
     const sort = req.params.sort || "popularity";
+    const mediaType = req.query.media || "all";
 
     const chatboard = await Chatboard.findOne({ name: chatboardName }).populate("messages");
 
     if(chatboard) {
         const dehashIP = req.headers["x-forwarded-for"] || req.ip;
         const ip = hashKey(dehashIP).substring(0, 8);
-        const messages = chatboard.messages;
+        let messages = chatboard.messages;
 
         messages.forEach(async (message) => {
             if (!message.viewed.includes(ip) && message.message !== "") {
@@ -395,6 +416,25 @@ app.get("/messages/:chatboardName/:sort?", async (req, res) => {
                 //     }
                 // }
                 await message.save();
+            }
+            if (mediaType !== "all" && message.message !== "") {
+                messages = messages.filter((message) => {
+                    let mime = message.imageMime;
+
+                    if (mediaType === "text") {
+                        return !mime;
+                    } else if (mediaType === "image") {
+                        return mime && mime.startsWith("image/");
+                    } else if (mediaType === "video") {
+                        return mime && mime.startsWith("video/");
+                    } else if (mediaType === "audio") {
+                        return mime && mime.startsWith("audio/");
+                    } else if (mediaType === "other") {
+                        return mime && !mime.startsWith("image/") && !mime.startsWith("video/") && !mime.startsWith("audio/");
+                    } else {
+                        return true;
+                    }
+                }); 
             }
             message.popularityScore = (message.views || 1) * (message.reactions.length || 1) * (message.replies.length || 1) * (message.imageMime ? 2 : 1);
         });
