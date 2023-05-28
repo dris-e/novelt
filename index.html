@@ -805,7 +805,7 @@
 
         document.addEventListener("touchend", (event) => {
             const touchEndY = event.changedTouches[0].clientY;
-            const delta = Math.sign(touchEndY - touchStartY);
+            const delta = Math.sign(touchStartY - touchEndY);
             if (canScroll) {
                 navigateMessages(delta);
             }
