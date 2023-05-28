@@ -8,6 +8,7 @@ const chatboardSchema = new mongoose.Schema({
     timestamp: String,
     username: Boolean,
     private: Boolean,
+    read: Boolean,
     pass: String
 });
 

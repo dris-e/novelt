@@ -36,10 +36,18 @@
             <h2>create chatboard</h2>
             <input type="text" id="chatboard-name" placeholder="chatboard name" maxlength="50">
             <input type="text" id="chatboard-descript" placeholder="chatboard description">
-            <input type="checkbox" id="chatboard-username" name="chatboard-username">
-            <label for="chatboard-username">anonymous</label>
-            <input type="checkbox" id="chatboard-private" name="chatboard-private">
-            <label for="chatboard-private">private</label>
+            <div class="check">
+                <input type="checkbox" id="chatboard-username" name="chatboard-username">
+                <label for="chatboard-username">anonymous</label>
+            </div>
+            <div class="check">
+                <input type="checkbox" id="chatboard-private" name="chatboard-private">
+                <label for="chatboard-read">read only</label>
+            </div>
+            <div class="check">
+                <input type="checkbox" id="chatboard-read" name="chatboard-read">
+                <label for="chatboard-private">private</label>
+            </div>
             <input type="password" id="chatboard-pass" placeholder="chatboard password" style="display: none">
             <button id="create-chatboard">create</button>
         </div>
@@ -105,6 +113,7 @@
         const chatboardName = document.getElementById("chatboard-name");
         const chatboardDescript = document.getElementById("chatboard-descript");
         const chatboardUser = document.getElementById("chatboard-username");
+        const chatboardRead = document.getElementById("chatboard-read");
         const chatboardPriv = document.getElementById("chatboard-private");
         const chatboardPass = document.getElementById("chatboard-pass");
         const create = document.getElementById("create-chatboard");
@@ -145,9 +154,11 @@
             const currentBoardName = url.replace("/chatboard/", "");
             
             if (currentBoardName) {
+                console.log(currentBoardName);
                 searchChatboards(currentBoardName);
             } else {
                 const lastChatboard = localStorage.getItem("lastChatboard");
+                console.log(lastChatboard);
                 if (lastChatboard) {
                     searchChatboards(lastChatboard);
                 }
@@ -166,7 +177,7 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ name: chatboardName.value, description: chatboardDescript.value, username: chatboardUser.checked, private: chatboardPriv.checked, pass: chatboardPass.value })
+                    body: JSON.stringify({ name: chatboardName.value, description: chatboardDescript.value, username: chatboardUser.checked, private: chatboardPriv.checked, read: chatboardRead.checked, pass: chatboardPass.value })
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -175,34 +186,31 @@
                 chatboardName.value = "";
                 chatboardDescript.value = "";
                 chatboardUser.checked = false;
+                chatboardRead.checked = false;
                 chatboardPriv.checked = false;
                 chatboardPass.value = "";
             }
         });
 
         chatboardSearch.addEventListener("change", () => {
-            console.log(chatboardSearch.value.trim())
             if (chatboardSearch.value.trim()) {
                 searchChatboards(chatboardSearch.value);
             }
         });
 
         chatboardPassword.addEventListener("change", () => {
-            console.log(chatboardSearch.value.trim())
             if (chatboardSearch.value.trim()) {
                 searchChatboards(chatboardSearch.value);
             }
         });
 
         boardInput.addEventListener("change", () => {
-            console.log(boardInput.value.trim())
             if (boardInput.value.trim()) {
                 searchChatboards(boardInput.value);
             }
         });
 
         chatboardSearchPassword.addEventListener("change", () => {
-            console.log(boardInput.value.trim())
             if (boardInput.value.trim()) {
                 searchChatboards(boardInput.value);
             }
@@ -647,6 +655,8 @@
             if (data) {
                 const currentUrl = window.location.pathname;
                 messageContainer.style.display = "block";
+
+                boardInput.value = data.name;
                 title.innerHTML = `<h1 style="color: ${data.creator ? data.creator : "fff"}">${data.name} <span style="color: #fff">${data.private ? "| Private" : ""}</span></h1>`;
                 chatboardTitle.innerHTML = data.name;
                 description.innerHTML = data.description;
@@ -661,7 +671,7 @@
             }
             if (data.private) {
                 messagesText.textContent = `board is private, enter password before joing`;
-            } else {
+            } else if (data) {
                 messagesText.textContent = "laoding messages";
             }
         }
@@ -969,6 +979,11 @@
             align-items: center;
         }
 
+        .check {
+            margin: auto;
+            justify-self: center;
+        }
+
         .navbar {
             position: fixed;
             display: flex;
@@ -1067,7 +1082,7 @@
             border: 3px solid #ccc;
             border-radius: 50%;
             border-top-color: #333;
-            animation: spin 1s ease-in-out infinite;
+            animation: spin 1s ease infinite;
         }
 
         @keyframes spin {

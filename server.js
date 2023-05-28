@@ -185,7 +185,7 @@ app.get("/download/:file(*)", async (req, res) => {
 });
 
 app.post("/createChatboard", async (req, res) => {
-    const { name, description, username, private, pass } = req.body;
+    const { name, description, username, private, read, pass } = req.body;
     const dehashIP = req.headers["x-forwarded-for"] || req.ip;
     const ip = hashKey(dehashIP).substring(0, 8);
 
@@ -211,6 +211,7 @@ app.post("/createChatboard", async (req, res) => {
         timestamp: new Date(),
         username,
         private,
+        read,
         pass: hashedPass
     });
 
@@ -342,6 +343,12 @@ app.post("/verifyPassword", async (req, res) => {
         res.status(400).send({ message: "bad" });
     }
 });
+
+//working on read omly chatboards
+//create new route to verify chaatboard if read only value is true
+//only allow post if the creator ip is the same as current ip
+//otherwise users can view but not message
+//creator acn also pi messages to chatboard
 
 app.get("/getChatboards/:sort/:skip?", async (req, res) => {
     const sort = req.params.sort || "popularity";
