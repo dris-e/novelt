@@ -564,6 +564,9 @@
         //         addMessageToList(msg);
         //     }
         // }
+        
+        console.log(new Date());
+        console.log(new Date().toLocaleString("en-US", { timeZone: "America/Chicago", hour12: false }));
 
         function navigateMessages(delta) {
             const messageItems = Array.from(messages.children);

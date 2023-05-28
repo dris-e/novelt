@@ -16,7 +16,7 @@ const Chatboard = require("./models/Chatboard");
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 2000 * 1000
+        fileSize: 50000 * 1000
     }
 });
 require("dotenv").config();
@@ -101,7 +101,8 @@ async function deleteMsgs() {
 
 setInterval(() => {
     const now = new Date();
-    const target = new Date();
+    const targetDate = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", hour12: false });
+    const target = new Date(targetDate);
     target.setHours(0, targetTime, 0);
 
     if (now > target) {
@@ -226,6 +227,7 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
         if (file) {
             const compressedBuffer = await sharp(file.buffer)
             .resize(500)
+            .jpeg({ quality: 50 })
             .jpeg({ quality: 50 })
             .png({ quality: 50 })
             .webp({ quality: 50 })
