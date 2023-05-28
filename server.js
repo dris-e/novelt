@@ -100,7 +100,8 @@ async function deleteMsgs() {
 // deleteMsgs();
 
 setInterval(() => {
-    const now = new Date();
+    const nowDate = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", hour12: false });
+    const now = new Date(nowDate);
     const targetDate = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", hour12: false });
     const target = new Date(targetDate);
     target.setHours(0, targetTime, 0);
