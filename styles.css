@@ -231,7 +231,7 @@ select {
 }
 
 .chatboard-content {
-    margin-top: 3rem;
+    /* margin-top: 1rem; */
     margin-left: 1rem;
 }
 
@@ -240,7 +240,14 @@ select {
     align-items: center;
     justify-content: center;
     text-align: center;
+}
+
+#loading-chatboards {
     margin-top: 1rem;
+}
+
+#loading-messages {
+    margin-top: -5rem;
 }
 
 .loading-text {

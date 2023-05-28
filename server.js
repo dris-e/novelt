@@ -45,14 +45,14 @@ let nextReset;
 //add replies x
 //REPLIES VIEW COUNT DO NOT WORK!!! x (no longer here)
 //sort by latest/most popular x
-//image upload x (DOES NOT WORK ON SERVER, USE AWS)
+//image upload x (DOES NOT WORK ON SERVER, USE AWS) x (fixed)
 //links/routes for every chatboard (if not cookies to last chatboard)
-//save last chatboard user was on in cookies
+//save last chatboard user was on in cookies x
 //same timezone everywhere x
 //allow all file types and sort content by filetype x
-//read-only chatboards
-//pinned messages
+//read-only chatboards, pinned messages
 //add replies without reloading page
+//add banner images ?
 
 //optimization
 //dont load and empty messages x
@@ -60,7 +60,7 @@ let nextReset;
 //show trending messages on homepage
 //load first 10 on scroll
 //show one at a time, similar to tiktok x?
-//read more appears if text is over certain limit
+//read more appears if text is over certain limit x
 
 const app = express();
 const server = http.createServer(app);
