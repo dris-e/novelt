@@ -134,6 +134,7 @@
         const sortChatboards = document.getElementById("sort-chatboards");
         const messagesText = document.getElementById("loading-messages-text");
         const messageContainer = document.querySelector(".my-message-container");
+        const sendContainer = document.querySelector(".my-send");
 
         const chatboardContainer = document.querySelector(".my-chatboard-container");
         const sidebar = document.querySelector(".sidebar");
@@ -357,6 +358,17 @@
                     chatboardSearchPassword.style.display = "none";
                     boardInput.value = chatboardSearch;
                     loadChatboards(data);
+                }
+                sendContainer.style.display = "flex";
+                if (data.read) {
+                    fetch("/getIp")
+                    .then(response => response.json())
+                    .then(myIp => {
+                        if (data.creator !== myIp) {
+                            console.log("nah");
+                            sendContainer.style.display = "none";
+                        }
+                    });
                 }
                 history.pushState(null, null, `/chatboard/${data.name}`);
                 renderChatboard(data);
@@ -665,6 +677,7 @@
             messages.innerHTML = "";
 
             if (data) {
+                history.pushState(null, null, `/chatboard/${data.name}`);
                 const currentUrl = window.location.pathname;
                 messageContainer.style.display = "block";
 

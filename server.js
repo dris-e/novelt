@@ -409,6 +409,13 @@ app.get("/searchChatboard/:name", async (req, res) => {
     }
 });
 
+app.get("/getIp", async (req, res) => {
+    const dehashIP = req.headers["x-forwarded-for"] || req.ip;
+    const ip = hashKey(dehashIP).substring(0, 8) || "000000";
+
+    res.json(`#${ip.substring(0, 6)}`);
+});
+
 app.get("/messages/:chatboardName/:sort?", async (req, res) => {
     const chatboardName = req.params.chatboardName;
     const sort = req.params.sort || "popularity";
