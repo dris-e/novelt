@@ -706,7 +706,7 @@
                 document.querySelector("body").style.overflowY = "hidden";
                 currentIndex = nextIndex;
                 messageItems[nextIndex].scrollIntoView({ behavior: "smooth" });
-            } else if (currentIndex === 0 ) {
+            } else if (currentIndex === 0 || nextIndex === messageItems.length) {
                 document.querySelector("body").style.overflowY = "visible";
             }
         }
