@@ -81,21 +81,31 @@ cron.schedule(`0 ${targetTime} * * *`, async () => {
 });
 
 async function deleteMsgs() {
-    const messages = await Chat.find();
+    const chatboards = await Chatboard.find();
+    for (const chatboard of chatboards) {
+        if (chatboard.read) {
+            continue;
+        }
+        
+        const messages = await Chat.find({ _id: { $in: chatboard.messages } });
 
-    for (const msg of messages) { //edit this too if edit chat
-        msg.username = "";
-        msg.message = "";
-        msg.reactions = [];
-        msg.image = Buffer.alloc(0);
-        msg.imageMime = "";
-        msg.color = "";
-        msg.timestamp = null;
-        msg.replies = [];
-        await msg.save();
+        for (const msg of messages) { //edit this too if edit chat
+            if (msg.message) {
+                msg.username = "";
+                msg.message = "";
+                msg.reactions = [];
+                msg.image = Buffer.alloc(0);
+                msg.imageMime = "";
+                msg.color = "";
+                msg.timestamp = null;
+                msg.replies = [];
+                await msg.save();
+            }
+        }
+        console.log("message is kil");
+        io.emit("reloadMessages", messages);
     }
-    console.log("message is kil");
-    io.emit("reloadMessages", messages);
+    console.log("finsiehd :thumbup:");
 
     // try {
     //     const dir = "./uploads";
