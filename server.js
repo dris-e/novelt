@@ -237,6 +237,9 @@ app.post("/postMessage/:chatboardName", upload.single("image"), async (req, res)
     const chatboard = await Chatboard.findOne({ name: chatboardName });
 
     if (chatboard) { //edit this if edit chat
+        if (chatboard.read && chatboard.creator !== `#${ip.substring(0, 6)}`) {
+            return res.status(403).send({ message: "you are NOT the creaetor" });
+        }
         let newUsername = chatboard.username ? "Anonymous" : username;
         const chatMessage = new Chat({
             username: newUsername,

@@ -41,11 +41,11 @@
                 <label for="chatboard-username">anonymous</label>
             </div>
             <div class="check">
-                <input type="checkbox" id="chatboard-private" name="chatboard-private">
+                <input type="checkbox" id="chatboard-read" name="chatboard-read">
                 <label for="chatboard-read">read only</label>
             </div>
             <div class="check">
-                <input type="checkbox" id="chatboard-read" name="chatboard-read">
+                <input type="checkbox" id="chatboard-private" name="chatboard-private">
                 <label for="chatboard-private">private</label>
             </div>
             <input type="password" id="chatboard-pass" placeholder="chatboard password" style="display: none">
@@ -173,6 +173,9 @@
 
         create.addEventListener("click", () => {
             if (chatboardName.value.trim() && chatboardDescript.value.trim()) {
+                if (chatboardPriv.checked && !chatboardPass.value) {
+                    return;
+                }
                 console.log("create");
                 fetch("/createChatboard", {
                     method: "POST",
@@ -635,6 +638,7 @@
 
         function addChatboardToList(chatboard) {
             let item = document.createElement("li");
+            let status = chatboard.private || chatboard.read;
             item.innerHTML = `<div class="my-chatboard">
                             <div class="cube-container">
                                 <div class="cube" style="width: 20px; height: 20px; background-color: ${chatboard.creator || "black"}"></div>
@@ -642,8 +646,8 @@
                             </div>
                             <h4>${chatboard.description ? chatboard.description : ""}</h4>
                             <p>Lifetime views: ${chatboard.totalViews} | Created: ${chatboard.timestamp ? new Date(chatboard.timestamp).toLocaleString() : "sometime ago"}</p></div>`;
-            if (chatboard.private) {
-                item.querySelector(".status").innerHTML = "| private";
+            if (status) {
+                item.querySelector(".status").innerHTML = `${chatboard.private ? "| private " : ""} ${chatboard.read ? "| read-only" : ""}`;
             }
             item.addEventListener("click", () => {
                 history.pushState(null, null, `/chatboard/${chatboard.name}`);
@@ -665,7 +669,7 @@
                 messageContainer.style.display = "block";
 
                 boardInput.value = data.name;
-                title.innerHTML = `<h1 style="color: ${data.creator ? data.creator : "fff"}">${data.name} <span style="color: #fff">${data.private ? "| Private" : ""}</span></h1>`;
+                title.innerHTML = `<h1 style="color: ${data.creator ? data.creator : "fff"}">${data.name} <span style="color: #fff">${data.private ? "| Private" : ""} ${data.read ? "| Read-Only" : ""}</span></h1>`;
                 chatboardTitle.innerHTML = data.name;
                 description.innerHTML = data.description;
                 link.innerHTML = `<a href="${currentUrl}">Link: /${currentUrl.replace("/chatboard/", "")}</a>`;
