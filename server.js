@@ -103,7 +103,7 @@ async function deleteMsgs() {
             }
         }
         console.log("message is kil");
-        io.emit("reloadMessages", messages);
+        io.emit("reloadMessages", { chatboard, messages });
     }
     console.log("finsiehd :thumbup:");
 

@@ -267,13 +267,15 @@
         });
 
         socket.on("reloadMessages", (data) => {
-            let messageList = document.getElementById("messages");
-            while (messageList.firstChild) {
-                messageList.firstChild.remove();
+            if (data.chatboard.name === boardName) {
+                let messageList = document.getElementById("messages");
+                while (messageList.firstChild) {
+                    messageList.firstChild.remove();
+                }
+                data.messages.forEach(msg => {
+                    addMessageToList(msg);
+                });
             }
-            messages.forEach(msg => {
-                addMessageToList(msg);
-            });
         });
 
         socket.on("updateTimer", (data) => {
