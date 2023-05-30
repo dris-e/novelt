@@ -295,13 +295,50 @@
             }
         });
 
-        socket.on("newReply", (data) => {
-            let chatItem = document.querySelector(`li[data-id="${data.chat._id}"]`);
+        socket.on("newReply", (data) => { //this is too buggy sorry 
+            let chatItem = document.querySelector(`[data-id="${data.chat._id}"]`);
             if (chatItem) {
-                chatItem.remove();
+                const reply = chatItem.querySelector(".replies");
+                reply.innerHTML = `${data.chat.replies ? data.chat.replies.map(reply => `<div class="my-reply"><li><div class="cube" style="width: 20px; height: 20px; background-color: ${reply.color}">${reply.username.substring(0, 1)}</div>
+                                                                            <p style="font-weight: bold">${reply.message} -&nbsp;</p>
+                                                                            <span>${reply.username} | ${new Date(reply.timestamp).toLocaleString()}</span></li></div>`).join("") : ""}`;
+                const showReplies = chatItem.querySelector(".show-replies");
+                showReplies.innerHTML = `show replies (${data.chat.replies.length})`;
+                showReplies.style.display = "block";
+                
+                const replyForm = chatItem.querySelector(".reply-form");
+                const replyMsg  = replyForm.querySelector("input[name='message']");
+                const replyUser = replyForm.querySelector("input[name='username']").value || username.value || "Anonymous";
+
+                console.log(replyMsg.value);
+                replyMsg.value = "";
+                replyForm.querySelector("input[name='username']").value = replyUser;    
+            
+                showReplies.addEventListener("click", () => {
+                    if (reply.style.display === "block") {
+                        console.log("dagfdklhjklshdas");
+                        reply.style.display = "block";
+                        showReplies.textContent = `hide replies (${data.chat.replies.length})`;
+                        document.querySelector("body").style.overflowY = "visible";
+                        canScroll = false;
+                    } else {
+                        console.log("das");
+                        reply.style.display = "none"
+                        showReplies.textContent = `show replies (${data.chat.replies.length})`;
+                        document.querySelector("body").style.overflowY = "hidden";
+                        canScroll = true;
+                    }
+                });
             }
-            loadChatboards(data.board, sortMessages.value);
         });
+
+        // socket.on("newReply", (data) => { 
+        //     let chatItem = document.querySelector(`li[data-id="${data.chat._id}"]`);
+        //     if (chatItem) {
+        //         chatItem.remove();
+        //     }
+        //     loadChatboards(data.board, sortMessages.value);
+        // });
 
         socket.on("newReaction", (data) => {
             const msg = document.querySelector(`[data-id="${data.chatId}"]`);

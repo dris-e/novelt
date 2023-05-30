@@ -51,8 +51,8 @@ let nextReset;
 //save last chatboard user was on in cookies x
 //same timezone everywhere x
 //allow all file types and sort content by filetype x
-//read-only chatboards, pinned messages
-//add replies without reloading page
+//read-only chatboards, pinned messages x (1/2)
+//add replies without reloading page x 
 //add banner images ?
 //save sort and toggle options to cookies
 
